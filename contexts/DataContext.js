@@ -72,28 +72,24 @@ export function DataProvider({ children }) {
     showToast('Donasi berhasil dihapus', 'danger');
   }, [showToast]);
 
-  // ---- Setoran ----
-  const createSetoran = useCallback((petugasId, donasiIds) => {
-    const selected = donasi.filter(d => donasiIds.includes(d.id));
-    const totalNominal = selected.reduce((sum, d) => sum + d.nominal, 0);
+  // ---- Setoran (Sistem Ledger) ----
+  const createSetoran = useCallback((petugasId, tanggal, metodeDonasiId, nominal, keterangan) => {
     const newSetoran = {
       id: generateId('s'),
       petugasId,
-      tanggal: new Date().toISOString().split('T')[0],
+      tanggal,
       status: 'menunggu_verifikasi',
-      donasiIds,
-      totalNominal,
+      metodeDonasiId,
+      totalNominal: parseInt(nominal),
+      keterangan,
       verifikasiOleh: null,
       tanggalVerifikasi: null,
       catatan: '',
     };
     setSetoran(prev => [newSetoran, ...prev]);
-    setDonasi(prev => prev.map(d =>
-      donasiIds.includes(d.id) ? { ...d, status: 'menunggu_verifikasi', setoranId: newSetoran.id } : d
-    ));
-    showToast('Setoran berhasil dibuat');
+    showToast('Setoran berhasil diajukan');
     return newSetoran;
-  }, [donasi, showToast]);
+  }, [showToast]);
 
   // ---- Verifikasi ----
   const verifikasiSetoran = useCallback((setoranId, bendaharaId, approved, catatan = '') => {
@@ -103,15 +99,8 @@ export function DataProvider({ children }) {
         ? { ...s, status: newStatus, verifikasiOleh: bendaharaId, tanggalVerifikasi: new Date().toISOString().split('T')[0], catatan }
         : s
     ));
-    // Update donasi statuses too
-    const targetSetoran = setoran.find(s => s.id === setoranId);
-    if (targetSetoran) {
-      setDonasi(prev => prev.map(d =>
-        targetSetoran.donasiIds.includes(d.id) ? { ...d, status: newStatus } : d
-      ));
-    }
     showToast(approved ? 'Setoran berhasil diverifikasi' : 'Setoran ditolak', approved ? 'success' : 'danger');
-  }, [setoran, showToast]);
+  }, [showToast]);
 
   // ---- Pengeluaran ----
   const addPengeluaran = useCallback((data) => {
