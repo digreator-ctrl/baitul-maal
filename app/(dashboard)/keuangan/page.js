@@ -93,7 +93,7 @@ export default function KeuanganPage() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div className="font-semibold text-sm">{petugas?.name || '-'}</div>
-                    <div className="text-sm text-secondary">{formatTanggalShort(s.tanggal)} · {s.donasiIds.length} donasi</div>
+                    <div className="text-sm text-secondary">{formatTanggalShort(s.tanggal)} · {metodeDonasi.find(m => m.id === s.metodeDonasiId)?.nama || '-'}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-primary-color">{formatRupiah(s.totalNominal)}</div>
@@ -104,22 +104,12 @@ export default function KeuanganPage() {
                 {/* Expanded Details */}
                 {isExpanded && (
                   <div style={{ borderTop: '1px solid var(--border)', padding: 'var(--space-md)' }}>
-                    {s.donasiIds.map(dnId => {
-                      const dn = donasi.find(d => d.id === dnId);
-                      if (!dn) return null;
-                      const don = donatur.find(x => x.id === dn.donaturId);
-                      const kat = kategoriDonasi.find(k => k.id === dn.kategoriDonasiId);
-                      const met = metodeDonasi.find(m => m.id === dn.metodeDonasiId);
-                      return (
-                        <div key={dnId} className="flex items-center gap-sm" style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                          <div style={{ flex: 1 }}>
-                            <div className="text-sm font-medium">{don?.nama || '-'}</div>
-                            <div className="text-sm text-tertiary">{kat?.nama} · {met?.nama} · {formatTanggalShort(dn.tanggal)}</div>
-                          </div>
-                          <div className="text-sm font-semibold">{formatRupiah(dn.nominal)}</div>
-                        </div>
-                      );
-                    })}
+                    
+                    {s.keterangan && (
+                      <div className="text-sm mb-md" style={{ color: 'var(--text-secondary)' }}>
+                        <strong>Keterangan:</strong> {s.keterangan}
+                      </div>
+                    )}
 
                     {s.catatan && (
                       <div className="mt-md" style={{ padding: '8px 12px', background: 'var(--danger-bg)', borderRadius: 'var(--radius-md)', fontSize: '0.8125rem' }}>

@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
-import { ArrowLeft, Wallet, Plus, Clock, CheckCircle2, XCircle, HandCoins } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Clock, CheckCircle2, XCircle, HandCoins } from 'lucide-react';
 
 export default function SetorPage() {
   const { user } = useAuth();
@@ -20,6 +20,22 @@ export default function SetorPage() {
     keterangan: ''
   });
   const [errors, setErrors] = useState({});
+  const [showRincian, setShowRincian] = useState(false);
+  const rincianRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (rincianRef.current && !rincianRef.current.contains(event.target)) {
+        setShowRincian(false);
+      }
+    }
+    if (showRincian) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showRincian]);
 
   // Hitung rekapitulasi per metode untuk petugas yang login
   const rekap = useMemo(() => {
@@ -124,36 +140,50 @@ export default function SetorPage() {
       </div>
 
       {/* Single Summary Card */}
-      <div className="card mb-lg" style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, rgba(0, 0, 0, 0.2) 100%)', border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+      <div 
+        ref={rincianRef}
+        className="card mb-lg" 
+        style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, rgba(0, 0, 0, 0.2) 100%)', border: '1px solid var(--border)' }}
+      >
+        <div 
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', cursor: 'pointer' }}
+          onClick={() => setShowRincian(!showRincian)}
+        >
           <div>
             <h3 className="font-semibold text-secondary" style={{ marginBottom: '8px' }}>Saldo Terkini</h3>
             <div className="font-bold text-primary" style={{ fontSize: '2rem', lineHeight: 1 }}>
               {formatRupiah(totalAkumulasi)}
             </div>
           </div>
+          <button className="btn btn-ghost btn-sm text-secondary" style={{ padding: '4px 8px' }}>
+            {showRincian ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
         </div>
 
-        <h4 className="font-semibold mb-sm" style={{ borderBottom: '1px dashed var(--border)', paddingBottom: '8px', color: 'var(--text)' }}>
-          Rincian Sumber Metode Donasi
-        </h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {rekap.length > 0 ? (
-            rekap.map(r => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }} />
-                  <span className="text-secondary">{r.nama}</span>
+        {showRincian && (
+          <div style={{ marginTop: '24px', animation: 'fadeIn 0.2s ease-in-out' }}>
+            <h4 className="font-semibold mb-sm" style={{ borderBottom: '1px dashed var(--border)', paddingBottom: '8px', color: 'var(--text)' }}>
+              Rincian Sumber Metode Donasi
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {rekap.length > 0 ? (
+                rekap.map(r => (
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }} />
+                      <span className="text-secondary">{r.nama}</span>
+                    </div>
+                    <span className="font-medium text-lg" style={{ fontStyle: 'italic' }}>{formatRupiah(r.saldoTersedia)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-secondary text-sm italic" style={{ padding: '8px 0' }}>
+                  Tidak ada metode donasi yang aktif.
                 </div>
-                <span className="font-medium text-lg" style={{ fontStyle: 'italic' }}>{formatRupiah(r.saldoTersedia)}</span>
-              </div>
-            ))
-          ) : (
-            <div className="text-secondary text-sm italic" style={{ padding: '8px 0' }}>
-              Tidak ada metode donasi yang aktif.
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Data Setoran */}

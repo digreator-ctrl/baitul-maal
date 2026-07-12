@@ -49,7 +49,7 @@ export default function PenerimaanPage() {
       showToast('Mohon lengkapi semua kolom yang wajib diisi', 'danger');
       return;
     }
-    
+
     addDonasi({ ...form, nominal: parseInt(form.nominal), petugasId: user?.id });
     setForm({ donaturId: '', tanggal: new Date().toISOString().split('T')[0], kategoriDonasiId: '', metodeDonasiId: '', nominal: '' });
     setErrors({});
@@ -68,7 +68,7 @@ export default function PenerimaanPage() {
         return don?.nama.toLowerCase().includes(search.toLowerCase());
       });
     }
-    
+
     let sorted = [...list];
     if (sortBy === 'terbaru') {
       sorted.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
@@ -130,10 +130,10 @@ export default function PenerimaanPage() {
           </div>
         )}
         {!isSearchFocused && (
-          <select 
-            className="form-select" 
-            style={{ flex: isSortFocused ? '1 1 100%' : '1 1 50%', width: 'auto' }} 
-            value={sortBy} 
+          <select
+            className="form-select"
+            style={{ flex: isSortFocused ? '1 1 100%' : '1 1 50%', width: 'auto' }}
+            value={sortBy}
             onChange={e => setSortBy(e.target.value)}
             onFocus={() => setIsSortFocused(true)}
             onBlur={() => setIsSortFocused(false)}
@@ -165,15 +165,15 @@ export default function PenerimaanPage() {
                   <div className="list-item-subtitle">
                     {new Date(dn.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
                   </div>
-                  <div 
+                  <div
                     title={dn.laporanTerkirim ? "Laporan WA Terkirim" : "Laporan WA Belum Terkirim"}
-                    style={{ 
-                      width: '10px', 
-                      height: '10px', 
-                      borderRadius: '50%', 
+                    style={{
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
                       background: dn.laporanTerkirim ? 'var(--success)' : 'var(--warning)',
                       boxShadow: dn.laporanTerkirim ? '0 0 8px var(--success-bg)' : '0 0 8px var(--warning-bg)'
-                    }} 
+                    }}
                   />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
@@ -203,11 +203,11 @@ export default function PenerimaanPage() {
                 {/* 1. Tanggal */}
                 <div className="form-group">
                   <label className="form-label">Tanggal *</label>
-                  <input 
-                    type="date" 
-                    className="form-input" 
-                    value={form.tanggal} 
-                    onChange={(e) => setForm(prev => ({ ...prev, tanggal: e.target.value }))} 
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={form.tanggal}
+                    onChange={(e) => setForm(prev => ({ ...prev, tanggal: e.target.value }))}
                     onClick={(e) => e.target.showPicker()}
                     style={{ borderColor: errors.tanggal ? 'var(--danger)' : undefined }}
                   />
@@ -228,10 +228,10 @@ export default function PenerimaanPage() {
                 {/* 3. Kategori Donasi */}
                 <div className="form-group">
                   <label className="form-label">Kategori Donasi *</label>
-                  <select 
-                    className="form-select" 
-                    value={form.kategoriDonasiId} 
-                    onChange={(e) => setForm(prev => ({ ...prev, kategoriDonasiId: e.target.value }))} 
+                  <select
+                    className="form-select"
+                    value={form.kategoriDonasiId}
+                    onChange={(e) => setForm(prev => ({ ...prev, kategoriDonasiId: e.target.value }))}
                     style={{ borderColor: errors.kategoriDonasiId ? 'var(--danger)' : undefined }}
                   >
                     <option value="">-- Pilih Kategori --</option>
@@ -244,10 +244,10 @@ export default function PenerimaanPage() {
                 {/* 4. Metode Donasi */}
                 <div className="form-group">
                   <label className="form-label">Metode Donasi *</label>
-                  <select 
-                    className="form-select" 
-                    value={form.metodeDonasiId} 
-                    onChange={(e) => setForm(prev => ({ ...prev, metodeDonasiId: e.target.value }))} 
+                  <select
+                    className="form-select"
+                    value={form.metodeDonasiId}
+                    onChange={(e) => setForm(prev => ({ ...prev, metodeDonasiId: e.target.value }))}
                     style={{ borderColor: errors.metodeDonasiId ? 'var(--danger)' : undefined }}
                   >
                     <option value="">-- Pilih Metode --</option>
@@ -260,12 +260,12 @@ export default function PenerimaanPage() {
                 {/* 5. Nominal */}
                 <div className="form-group">
                   <label className="form-label">Nominal (Rp) *</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="0" 
-                    value={formatNominalDisplay(form.nominal)} 
-                    onChange={handleNominalChange} 
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="0"
+                    value={formatNominalDisplay(form.nominal)}
+                    onChange={handleNominalChange}
                     style={{ borderColor: errors.nominal ? 'var(--danger)' : undefined }}
                   />
                 </div>
