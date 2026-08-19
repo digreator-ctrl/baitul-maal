@@ -142,27 +142,35 @@ export default function SetorPage() {
       {/* Single Summary Card */}
       <div 
         ref={rincianRef}
-        className="card mb-lg" 
-        style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, rgba(0, 0, 0, 0.2) 100%)', border: '1px solid var(--border)' }}
+        className="card mb-lg animate-scale" 
+        style={{ 
+          background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: 'pointer'
+        }}
+        onClick={() => setShowRincian(!showRincian)}
       >
-        <div 
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', cursor: 'pointer' }}
-          onClick={() => setShowRincian(!showRincian)}
-        >
+        {/* Dekorasi Card */}
+        <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '150px', height: '150px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', width: '100px', height: '100px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
           <div>
-            <h3 className="font-semibold text-secondary" style={{ marginBottom: '8px' }}>Saldo Terkini</h3>
-            <div className="font-bold text-primary" style={{ fontSize: '2rem', lineHeight: 1 }}>
+            <h3 className="font-semibold mb-sm" style={{ opacity: 0.9 }}>Saldo Terkini</h3>
+            <div className="font-bold" style={{ fontSize: '2rem', lineHeight: 1 }}>
               {formatRupiah(totalAkumulasi)}
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm text-secondary" style={{ padding: '4px 8px' }}>
+          <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px', color: 'white', background: 'rgba(255,255,255,0.2)' }}>
             {showRincian ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </button>
         </div>
 
         {showRincian && (
-          <div style={{ marginTop: '24px', animation: 'fadeIn 0.2s ease-in-out' }}>
-            <h4 className="font-semibold mb-sm" style={{ borderBottom: '1px dashed var(--border)', paddingBottom: '8px', color: 'var(--text)' }}>
+          <div style={{ marginTop: '24px', animation: 'fadeIn 0.2s ease-in-out', position: 'relative', zIndex: 1 }}>
+            <h4 className="font-semibold mb-sm" style={{ borderBottom: '1px dashed rgba(255,255,255,0.3)', paddingBottom: '8px', opacity: 0.9 }}>
               Rincian Sumber Metode Donasi
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -170,14 +178,14 @@ export default function SetorPage() {
                 rekap.map(r => (
                   <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }} />
-                      <span className="text-secondary">{r.nama}</span>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'white', opacity: 0.8 }} />
+                      <span style={{ opacity: 0.9 }}>{r.nama}</span>
                     </div>
                     <span className="font-medium text-lg" style={{ fontStyle: 'italic' }}>{formatRupiah(r.saldoTersedia)}</span>
                   </div>
                 ))
               ) : (
-                <div className="text-secondary text-sm italic" style={{ padding: '8px 0' }}>
+                <div className="text-sm italic" style={{ padding: '8px 0', opacity: 0.8 }}>
                   Tidak ada metode donasi yang aktif.
                 </div>
               )}

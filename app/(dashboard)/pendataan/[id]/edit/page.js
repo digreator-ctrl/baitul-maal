@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, MapPin } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
+import DynamicMapPicker from '@/components/DynamicMapPicker';
 
 export default function EditDonaturPage() {
   const { id } = useParams();
@@ -31,6 +32,7 @@ export default function EditDonaturPage() {
   const [districts, setDistricts] = useState([]);
   const [villages, setVillages] = useState([]);
   const [loading, setLoading] = useState({});
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   useEffect(() => {
     if (d) {
@@ -60,6 +62,15 @@ export default function EditDonaturPage() {
       .then(data => {
         setProvinces(data.sort((a, b) => a.name.localeCompare(b.name)));
         setLoading(prev => ({ ...prev, provinsi: false }));
+        
+        // Auto-match data teks lama ke ID
+        setForm(prev => {
+          if (prev.provinsi && !prev.provinsiId) {
+            const match = data.find(p => p.name.toLowerCase() === prev.provinsi.toLowerCase());
+            if (match) return { ...prev, provinsiId: match.id };
+          }
+          return prev;
+        });
       })
       .catch(() => setLoading(prev => ({ ...prev, provinsi: false })));
   }, []);
@@ -74,6 +85,14 @@ export default function EditDonaturPage() {
         .then(data => {
           setCities(data.sort((a, b) => a.name.localeCompare(b.name)));
           setLoading(prev => ({ ...prev, kota: false }));
+          
+          setForm(prev => {
+            if (prev.kota && !prev.kotaId) {
+              const match = data.find(c => c.name.toLowerCase() === prev.kota.toLowerCase() || c.name.toLowerCase() === prev.kota.replace('Kabupaten', 'KAB.').toLowerCase());
+              if (match) return { ...prev, kotaId: match.id };
+            }
+            return prev;
+          });
         })
         .catch(() => setLoading(prev => ({ ...prev, kota: false })));
     }
@@ -89,6 +108,14 @@ export default function EditDonaturPage() {
         .then(data => {
           setDistricts(data.sort((a, b) => a.name.localeCompare(b.name)));
           setLoading(prev => ({ ...prev, kecamatan: false }));
+          
+          setForm(prev => {
+            if (prev.kecamatan && !prev.kecamatanId) {
+              const match = data.find(d => d.name.toLowerCase() === prev.kecamatan.toLowerCase());
+              if (match) return { ...prev, kecamatanId: match.id };
+            }
+            return prev;
+          });
         })
         .catch(() => setLoading(prev => ({ ...prev, kecamatan: false })));
     }
@@ -104,6 +131,14 @@ export default function EditDonaturPage() {
         .then(data => {
           setVillages(data.sort((a, b) => a.name.localeCompare(b.name)));
           setLoading(prev => ({ ...prev, kelurahan: false }));
+          
+          setForm(prev => {
+            if (prev.kelurahan && !prev.kelurahanId) {
+              const match = data.find(v => v.name.toLowerCase() === prev.kelurahan.toLowerCase());
+              if (match) return { ...prev, kelurahanId: match.id };
+            }
+            return prev;
+          });
         })
         .catch(() => setLoading(prev => ({ ...prev, kelurahan: false })));
     }
@@ -366,14 +401,25 @@ export default function EditDonaturPage() {
 
             <div className="form-group">
               <label className="form-label">Link Google Maps</label>
-              <input
-                type="url"
-                className="form-input"
-                placeholder="https://maps.google.com/..."
-                value={form.linkGmaps}
-                onChange={(e) => setForm(prev => ({ ...prev, linkGmaps: e.target.value }))}
-              />
-              <span className="form-hint">Salin link dari Google Maps</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="url"
+                  className="form-input"
+                  style={{ flex: 1 }}
+                  placeholder="https://maps.google.com/..."
+                  value={form.linkGmaps}
+                  onChange={(e) => setForm(prev => ({ ...prev, linkGmaps: e.target.value }))}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setIsMapOpen(true)}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  <MapPin size={18} /> Pilih dari Peta
+                </button>
+              </div>
+              <span className="form-hint">Salin link dari Google Maps atau pilih langsung dari peta</span>
             </div>
           </div>
         )}
@@ -396,6 +442,20 @@ export default function EditDonaturPage() {
           </div>
         </div>
       </form>
+
+      <DynamicMapPicker 
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        onConfirm={(url) => setForm(prev => ({ ...prev, linkGmaps: url }))}
+        initialLocation={
+          form.linkGmaps && form.linkGmaps.includes('q=')
+            ? {
+                lat: parseFloat(form.linkGmaps.split('q=')[1].split(',')[0]),
+                lng: parseFloat(form.linkGmaps.split('q=')[1].split(',')[1])
+              }
+            : null
+        }
+      />
     </div>
   );
 }

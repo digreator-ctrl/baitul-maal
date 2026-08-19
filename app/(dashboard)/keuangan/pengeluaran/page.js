@@ -6,20 +6,40 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { isReadOnly } from '@/lib/rbac';
 import { formatRupiah, formatTanggalShort } from '@/lib/mock';
-import { ArrowLeft, Plus, Minus, Wallet } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Wallet, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function PengeluaranPage() {
   const { user } = useAuth();
-  const { pengeluaran, metodeDonasi, posPengeluaran, addPengeluaran, getSaldoPerMetode } = useData();
+  const { pengeluaran, metodeDonasi, posPengeluaran, addPengeluaran, setoran } = useData();
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
+  const [showRincian, setShowRincian] = useState(false);
   const [form, setForm] = useState({
     tanggal: new Date().toISOString().split('T')[0],
     sumberDanaId: '', posPengeluaranId: '', nominal: '', keterangan: '',
   });
 
-  const readOnly = isReadOnly(user?.role);
-  const saldo = useMemo(() => getSaldoPerMetode(), [getSaldoPerMetode]);
+  const readOnly = isReadOnly(user);
+  
+  // Hitung saldo yang telah diterima oleh Bendahara (hanya status terverifikasi) dikurangi pengeluaran
+  const rekap = useMemo(() => {
+    return metodeDonasi.filter(m => m.aktif).map(m => {
+      const totalDiterima = setoran
+        .filter(s => s.status === 'terverifikasi' && s.metodeDonasiId === m.id)
+        .reduce((sum, s) => sum + s.totalNominal, 0);
+      
+      const totalKeluar = pengeluaran
+        .filter(p => p.sumberDanaId === m.id)
+        .reduce((sum, p) => sum + p.nominal, 0);
+
+      return {
+        ...m,
+        saldoTersedia: totalDiterima - totalKeluar
+      };
+    });
+  }, [metodeDonasi, setoran, pengeluaran]);
+
+  const totalAkumulasi = rekap.reduce((sum, r) => sum + r.saldoTersedia, 0);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -55,20 +75,61 @@ export default function PengeluaranPage() {
         )}
       </div>
 
-      {/* Saldo Overview */}
-      <div className="grid gap-sm mb-lg" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-        {metodeDonasi.filter(m => m.aktif).map(m => {
-          const s = saldo[m.id] || 0;
-          return (
-            <div key={m.id} className="card" style={{ padding: 'var(--space-md)' }}>
-              <div className="text-sm text-secondary">{m.nama}</div>
-              <div className="font-bold" style={{ color: s > 0 ? 'var(--primary)' : 'var(--text-tertiary)' }}>
-                {formatRupiah(s)}
-              </div>
+      {/* Saldo Terkini */}
+      <div 
+        className="card mb-lg animate-scale" 
+        style={{ 
+          background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: 'pointer'
+        }}
+        onClick={() => setShowRincian(!showRincian)}
+      >
+        {/* Dekorasi Card */}
+        <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '150px', height: '150px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', width: '100px', height: '100px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+          <div>
+            <h3 className="font-semibold mb-sm" style={{ opacity: 0.9 }}>Total Dana di Bendahara</h3>
+            <div className="font-bold" style={{ fontSize: '2rem', lineHeight: 1 }}>
+              {formatRupiah(totalAkumulasi)}
             </div>
-          );
-        })}
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px', color: 'white', background: 'rgba(255,255,255,0.2)' }}>
+            {showRincian ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
+        </div>
+
+        {showRincian && (
+          <div style={{ marginTop: '24px', animation: 'fadeIn 0.2s ease-in-out', position: 'relative', zIndex: 1 }}>
+            <h4 className="font-semibold mb-sm" style={{ borderBottom: '1px dashed rgba(255,255,255,0.3)', paddingBottom: '8px', opacity: 0.9 }}>
+              Rincian Metode Penerimaan
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {rekap.length > 0 ? (
+                rekap.map(r => (
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'white', opacity: 0.8 }} />
+                      <span style={{ opacity: 0.9 }}>{r.nama}</span>
+                    </div>
+                    <span className="font-medium text-lg" style={{ fontStyle: 'italic' }}>{formatRupiah(r.saldoTersedia)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm italic" style={{ padding: '8px 0', opacity: 0.8 }}>
+                  Tidak ada metode donasi yang aktif.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      <h3 className="font-bold mb-md">Riwayat Pengeluaran</h3>
 
       {/* Pengeluaran List */}
       <div className="stagger">
@@ -118,12 +179,12 @@ export default function PengeluaranPage() {
                   <label className="form-label">Sumber Dana *</label>
                   <select className="form-select" value={form.sumberDanaId} onChange={(e) => setForm(prev => ({ ...prev, sumberDanaId: e.target.value }))} required>
                     <option value="">-- Pilih Sumber Dana --</option>
-                    {metodeDonasi.filter(m => m.aktif).map(m => (
-                      <option key={m.id} value={m.id}>{m.nama} (Saldo: {formatRupiah(saldo[m.id] || 0)})</option>
+                    {rekap.map(m => (
+                      <option key={m.id} value={m.id}>{m.nama} (Saldo: {formatRupiah(m.saldoTersedia)})</option>
                     ))}
                   </select>
                   {form.sumberDanaId && (
-                    <span className="form-hint">Saldo tersedia: {formatRupiah(saldo[form.sumberDanaId] || 0)}</span>
+                    <span className="form-hint">Saldo tersedia: {formatRupiah(rekap.find(r => r.id === form.sumberDanaId)?.saldoTersedia || 0)}</span>
                   )}
                 </div>
                 <div className="form-group">
@@ -138,7 +199,7 @@ export default function PengeluaranPage() {
                 <div className="form-group">
                   <label className="form-label">Nominal (Rp) *</label>
                   <input type="number" className="form-input" placeholder="0" value={form.nominal} onChange={(e) => setForm(prev => ({ ...prev, nominal: e.target.value }))} min="1000" required />
-                  {form.sumberDanaId && parseInt(form.nominal) > (saldo[form.sumberDanaId] || 0) && (
+                  {form.sumberDanaId && parseInt(form.nominal) > (rekap.find(r => r.id === form.sumberDanaId)?.saldoTersedia || 0) && (
                     <span className="form-error">Nominal melebihi saldo!</span>
                   )}
                 </div>

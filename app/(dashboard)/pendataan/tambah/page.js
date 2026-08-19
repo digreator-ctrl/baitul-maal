@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, MapPin } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
+import DynamicMapPicker from '@/components/DynamicMapPicker';
 
 export default function TambahDonaturPage() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function TambahDonaturPage() {
   const [districts, setDistricts] = useState([]);
   const [villages, setVillages] = useState([]);
   const [loading, setLoading] = useState({});
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   // Fetch provinces on mount
   useEffect(() => {
@@ -320,14 +322,25 @@ export default function TambahDonaturPage() {
 
             <div className="form-group">
               <label className="form-label">Link Google Maps</label>
-              <input
-                type="url"
-                className="form-input"
-                placeholder="https://maps.google.com/..."
-                value={form.linkGmaps}
-                onChange={(e) => setForm(prev => ({ ...prev, linkGmaps: e.target.value }))}
-              />
-              <span className="form-hint">Salin link dari Google Maps</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="url"
+                  className="form-input"
+                  style={{ flex: 1 }}
+                  placeholder="https://maps.google.com/..."
+                  value={form.linkGmaps}
+                  onChange={(e) => setForm(prev => ({ ...prev, linkGmaps: e.target.value }))}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setIsMapOpen(true)}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  <MapPin size={18} /> Pilih dari Peta
+                </button>
+              </div>
+              <span className="form-hint">Salin link dari Google Maps atau pilih langsung dari peta</span>
             </div>
           </div>
         )}
@@ -350,6 +363,12 @@ export default function TambahDonaturPage() {
           </div>
         </div>
       </form>
+
+      <DynamicMapPicker 
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        onConfirm={(url) => setForm(prev => ({ ...prev, linkGmaps: url }))}
+      />
     </div>
   );
 }

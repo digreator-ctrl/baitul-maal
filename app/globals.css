@@ -1490,9 +1490,10 @@ input, select, textarea, button {
 /* Toast Notification */
 .toast {
   position: fixed;
-  bottom: var(--space-lg);
+  top: var(--space-lg);
+  bottom: auto;
   left: 50%;
-  transform: translateX(-50%) translateY(100px);
+  transform: translateX(-50%) translateY(-100px);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -1503,7 +1504,7 @@ input, select, textarea, button {
   font-size: 0.875rem;
   font-weight: 500;
   box-shadow: var(--shadow-lg);
-  z-index: 2000;
+  z-index: 100000;
   transition: transform var(--transition-normal);
   max-width: calc(100vw - 32px);
 }
@@ -1516,7 +1517,8 @@ input, select, textarea, button {
 
 @media (min-width: 1024px) {
   .toast {
-    bottom: var(--space-xl);
+    top: var(--space-xl);
+    bottom: auto;
   }
 }
 

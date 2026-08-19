@@ -1,18 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { isReadOnly } from '@/lib/rbac';
-import { formatRupiah, formatTanggalShort } from '@/lib/mock';
-import { Landmark, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { Landmark, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function KeuanganPage() {
   const { user } = useAuth();
-  const { setoran, donasi, donatur, kategoriDonasi, metodeDonasi, users, verifikasiSetoran } = useData();
-  const [expandedSetoran, setExpandedSetoran] = useState(null);
-  const [showReject, setShowReject] = useState(null);
-  const [catatan, setCatatan] = useState('');
+  const { setoran, metodeDonasi, users, pengeluaran } = useData();
+  const router = useRouter();
+  const [showRincian, setShowRincian] = useState(false);
 
   const readOnly = isReadOnly(user?.role);
 
@@ -25,15 +25,25 @@ export default function KeuanganPage() {
     });
   }, [setoran]);
 
-  const handleVerifikasi = (setoranId) => {
-    verifikasiSetoran(setoranId, user?.id, true);
-  };
+  // Hitung saldo yang telah diterima oleh Bendahara (hanya status terverifikasi) dikurangi pengeluaran
+  const rekap = useMemo(() => {
+    return metodeDonasi.filter(m => m.aktif).map(m => {
+      const totalDiterima = setoran
+        .filter(s => s.status === 'terverifikasi' && s.metodeDonasiId === m.id)
+        .reduce((sum, s) => sum + s.totalNominal, 0);
+      
+      const totalKeluar = pengeluaran
+        .filter(p => p.sumberDanaId === m.id)
+        .reduce((sum, p) => sum + p.nominal, 0);
 
-  const handleTolak = (setoranId) => {
-    verifikasiSetoran(setoranId, user?.id, false, catatan);
-    setShowReject(null);
-    setCatatan('');
-  };
+      return {
+        ...m,
+        saldoTersedia: totalDiterima - totalKeluar
+      };
+    });
+  }, [metodeDonasi, setoran, pengeluaran]);
+
+  const totalAkumulasi = rekap.reduce((sum, r) => sum + r.saldoTersedia, 0);
 
   return (
     <div className="animate-fade-in-up">
@@ -42,26 +52,62 @@ export default function KeuanganPage() {
         <p>Kelola setoran dari petugas</p>
       </div>
 
-      {/* Summary */}
-      <div className="stats-grid mb-lg" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <div className="stat-card">
-          <div className="stat-icon gold"><Clock size={22} /></div>
-          <div className="stat-label">Menunggu</div>
-          <div className="stat-value">{setoran.filter(s => s.status === 'menunggu_verifikasi').length}</div>
+      {/* Saldo Terkini */}
+      <div 
+        className="card mb-lg animate-scale" 
+        style={{ 
+          background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: 'pointer'
+        }}
+        onClick={() => setShowRincian(!showRincian)}
+      >
+        {/* Dekorasi Card */}
+        <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '150px', height: '150px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', width: '100px', height: '100px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+          <div>
+            <h3 className="font-semibold mb-sm" style={{ opacity: 0.9 }}>Total Dana di Bendahara</h3>
+            <div className="font-bold" style={{ fontSize: '2rem', lineHeight: 1 }}>
+              {formatRupiah(totalAkumulasi)}
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px', color: 'white', background: 'rgba(255,255,255,0.2)' }}>
+            {showRincian ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon green"><CheckCircle2 size={22} /></div>
-          <div className="stat-label">Terverifikasi</div>
-          <div className="stat-value">{setoran.filter(s => s.status === 'terverifikasi').length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon red"><XCircle size={22} /></div>
-          <div className="stat-label">Ditolak</div>
-          <div className="stat-value">{setoran.filter(s => s.status === 'ditolak').length}</div>
-        </div>
+
+        {showRincian && (
+          <div style={{ marginTop: '24px', animation: 'fadeIn 0.2s ease-in-out', position: 'relative', zIndex: 1 }}>
+            <h4 className="font-semibold mb-sm" style={{ borderBottom: '1px dashed rgba(255,255,255,0.3)', paddingBottom: '8px', opacity: 0.9 }}>
+              Rincian Metode Penerimaan
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {rekap.length > 0 ? (
+                rekap.map(r => (
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'white', opacity: 0.8 }} />
+                      <span style={{ opacity: 0.9 }}>{r.nama}</span>
+                    </div>
+                    <span className="font-medium text-lg" style={{ fontStyle: 'italic' }}>{formatRupiah(r.saldoTersedia)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm italic" style={{ padding: '8px 0', opacity: 0.8 }}>
+                  Tidak ada metode donasi yang aktif.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Setoran List */}
+      <h3 className="font-bold mb-md">Data Pengajuan Setoran</h3>
       <div className="stagger">
         {sortedSetoran.length === 0 ? (
           <div className="empty-state">
@@ -71,105 +117,37 @@ export default function KeuanganPage() {
         ) : (
           sortedSetoran.map(s => {
             const petugas = users.find(u => u.id === s.petugasId);
-            const verifikator = users.find(u => u.id === s.verifikasiOleh);
-            const isExpanded = expandedSetoran === s.id;
-            const statusColor = s.status === 'terverifikasi' ? 'success' : s.status === 'ditolak' ? 'danger' : 'warning';
+            const met = metodeDonasi.find(m => m.id === s.metodeDonasiId);
+            const status = getStatusBadge(s.status);
 
             return (
-              <div key={s.id} className="card" style={{ padding: 0, borderLeft: `3px solid var(--${statusColor})` }}>
-                {/* Header */}
-                <div
-                  className="flex items-center gap-md p-md"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => setExpandedSetoran(isExpanded ? null : s.id)}
-                >
-                  <div className="list-item-avatar" style={{
-                    background: `var(--${statusColor}-bg)`,
-                    color: `var(--${statusColor})`,
-                  }}>
-                    {s.status === 'terverifikasi' ? <CheckCircle2 size={20} /> :
-                     s.status === 'ditolak' ? <XCircle size={20} /> :
-                     <Clock size={20} />}
+              <div 
+                key={s.id} 
+                className="list-item" 
+                style={{ display: 'block', padding: '16px', cursor: 'pointer', marginBottom: '12px' }}
+                onClick={() => router.push(`/keuangan/${s.id}`)}
+              >
+                {/* Header (Date & Status) */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div className="list-item-subtitle" style={{ color: 'var(--text-secondary)' }}>
+                    {new Date(s.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="font-semibold text-sm">{petugas?.name || '-'}</div>
-                    <div className="text-sm text-secondary">{formatTanggalShort(s.tanggal)} · {metodeDonasi.find(m => m.id === s.metodeDonasiId)?.nama || '-'}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-primary-color">{formatRupiah(s.totalNominal)}</div>
-                    {isExpanded ? <ChevronUp size={16} color="var(--text-tertiary)" /> : <ChevronDown size={16} color="var(--text-tertiary)" />}
-                  </div>
+                  <span className={`badge badge-${status.variant}`} style={{ fontSize: '0.75rem' }}>{status.label}</span>
                 </div>
-
-                {/* Expanded Details */}
-                {isExpanded && (
-                  <div style={{ borderTop: '1px solid var(--border)', padding: 'var(--space-md)' }}>
-                    
-                    {s.keterangan && (
-                      <div className="text-sm mb-md" style={{ color: 'var(--text-secondary)' }}>
-                        <strong>Keterangan:</strong> {s.keterangan}
-                      </div>
-                    )}
-
-                    {s.catatan && (
-                      <div className="mt-md" style={{ padding: '8px 12px', background: 'var(--danger-bg)', borderRadius: 'var(--radius-md)', fontSize: '0.8125rem' }}>
-                        <strong>Catatan:</strong> {s.catatan}
-                      </div>
-                    )}
-
-                    {s.verifikasiOleh && (
-                      <div className="text-sm text-tertiary mt-md">
-                        {s.status === 'terverifikasi' ? 'Diverifikasi' : 'Ditolak'} oleh {verifikator?.name} pada {formatTanggalShort(s.tanggalVerifikasi)}
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    {s.status === 'menunggu_verifikasi' && !readOnly && (
-                      <div className="flex gap-sm mt-md">
-                        <button className="btn btn-success btn-sm" style={{ flex: 1 }} onClick={() => handleVerifikasi(s.id)}>
-                          <CheckCircle2 size={16} /> Verifikasi
-                        </button>
-                        <button className="btn btn-danger btn-sm" style={{ flex: 1 }} onClick={() => setShowReject(s.id)}>
-                          <XCircle size={16} /> Tolak
-                        </button>
-                      </div>
-                    )}
+                
+                {/* Body (Method/Name & Amount) */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div className="list-item-title" style={{ fontSize: '1rem', marginBottom: '2px' }}>{met?.nama || 'Setoran'}</div>
+                    <div className="list-item-subtitle" style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>{petugas?.name || '-'}</div>
                   </div>
-                )}
+                  <div className="list-item-value" style={{ color: 'var(--primary)', fontSize: '1rem' }}>{formatRupiah(s.totalNominal)}</div>
+                </div>
               </div>
             );
           })
         )}
       </div>
-
-      {/* Reject Modal */}
-      {showReject && (
-        <div className="modal-overlay" onClick={() => { setShowReject(null); setCatatan(''); }}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Tolak Setoran</h3>
-              <button className="btn btn-ghost btn-icon" onClick={() => { setShowReject(null); setCatatan(''); }}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Alasan Penolakan</label>
-                <textarea
-                  className="form-textarea"
-                  placeholder="Tuliskan alasan penolakan..."
-                  value={catatan}
-                  onChange={(e) => setCatatan(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => { setShowReject(null); setCatatan(''); }}>Batal</button>
-              <button className="btn btn-danger" onClick={() => handleTolak(showReject)}>
-                <XCircle size={16} /> Tolak Setoran
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
