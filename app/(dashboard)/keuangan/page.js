@@ -38,7 +38,7 @@ export default function KeuanganPage() {
 
       return {
         ...m,
-        saldoTersedia: totalDiterima - totalKeluar
+        saldoTersedia: Math.max(0, totalDiterima - totalKeluar)
       };
     });
   }, [metodeDonasi, setoran, pengeluaran]);

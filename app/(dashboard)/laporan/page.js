@@ -1,135 +1,171 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalShort } from '@/lib/mock';
-import { BarChart3, Filter, Download, TrendingUp } from 'lucide-react';
+import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { useRouter } from 'next/navigation';
+import { 
+  BarChart3, FileText, Wallet, ArrowRight, 
+  Users, HandCoins, CheckCircle2, XCircle, Clock
+} from 'lucide-react';
+import { useMemo } from 'react';
 
-export default function LaporanDonasiPage() {
+function LaporanPetugas() {
   const { user } = useAuth();
-  const { donasi, donatur, kategoriDonasi, metodeDonasi, users } = useData();
-  const [filterPeriode, setFilterPeriode] = useState('semua');
-  const [filterKategori, setFilterKategori] = useState('semua');
-  const [filterMetode, setFilterMetode] = useState('semua');
+  const { donasi, setoran } = useData();
 
-  const filtered = useMemo(() => {
-    return donasi
-      .filter(d => d.status === 'terverifikasi')
-      .filter(d => {
-        if (filterKategori !== 'semua' && d.kategoriDonasiId !== filterKategori) return false;
-        if (filterMetode !== 'semua' && d.metodeDonasiId !== filterMetode) return false;
-        return true;
-      })
-      .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-  }, [donasi, filterKategori, filterMetode]);
-
-  const totalFiltered = filtered.reduce((sum, d) => sum + d.nominal, 0);
-
-  // Group by kategori for summary
-  const summaryByKategori = useMemo(() => {
-    const groups = {};
-    filtered.forEach(d => {
-      const kat = kategoriDonasi.find(k => k.id === d.kategoriDonasiId);
-      const key = kat?.nama || 'Lainnya';
-      if (!groups[key]) groups[key] = { count: 0, total: 0 };
-      groups[key].count++;
-      groups[key].total += d.nominal;
-    });
-    return Object.entries(groups).sort((a, b) => b[1].total - a[1].total);
-  }, [filtered, kategoriDonasi]);
+  const stats = useMemo(() => {
+    const myDonasi = donasi.filter(d => d.petugasId === user?.id);
+    const totalDonasi = myDonasi.reduce((sum, d) => sum + d.nominal, 0);
+    const jumlahDonatur = new Set(myDonasi.map(d => d.donaturId)).size;
+    const mySetoran = setoran.filter(s => s.petugasId === user?.id);
+    
+    return {
+      totalDonasi,
+      jumlahDonatur,
+      mySetoran: mySetoran.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
+    };
+  }, [donasi, setoran, user]);
 
   return (
-    <div className="animate-fade-in-up">
+    <div className="animate-fade-in-up pb-xl">
       <div className="page-header">
-        <h1>Laporan Donasi Masuk</h1>
-        <p>Riwayat donasi yang telah terverifikasi</p>
+        <h1>Laporan Kinerja Anda</h1>
+        <p>Ringkasan aktivitas penghimpunan dan setoran Anda</p>
       </div>
 
-      {/* Summary */}
-      <div className="saldo-card mb-lg">
-        <div className="saldo-label">Total Donasi Terverifikasi</div>
-        <div className="saldo-amount">{formatRupiah(totalFiltered)}</div>
-        <div className="saldo-detail">
-          <span>{filtered.length} transaksi</span>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="card mb-md" style={{ padding: 'var(--space-md)' }}>
-        <div className="flex items-center gap-sm mb-md">
-          <Filter size={16} color="var(--text-secondary)" />
-          <span className="text-sm font-semibold text-secondary">Filter</span>
-        </div>
-        <div className="form-row">
-          <div className="form-group" style={{ marginBottom: 'var(--space-sm)' }}>
-            <select className="form-select" value={filterKategori} onChange={(e) => setFilterKategori(e.target.value)}>
-              <option value="semua">Semua Kategori</option>
-              {kategoriDonasi.map(k => (
-                <option key={k.id} value={k.id}>{k.nama}</option>
-              ))}
-            </select>
+      <div className="grid gap-md mb-lg" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <div className="card" style={{ borderLeft: '4px solid var(--primary)' }}>
+          <div className="flex items-center gap-sm mb-sm text-secondary">
+            <HandCoins size={18} />
+            <span className="font-semibold">Total Penghimpunan</span>
           </div>
-          <div className="form-group" style={{ marginBottom: 'var(--space-sm)' }}>
-            <select className="form-select" value={filterMetode} onChange={(e) => setFilterMetode(e.target.value)}>
-              <option value="semua">Semua Metode</option>
-              {metodeDonasi.map(m => (
-                <option key={m.id} value={m.id}>{m.nama}</option>
-              ))}
-            </select>
+          <div className="text-2xl font-bold text-primary-color">{formatRupiah(stats.totalDonasi)}</div>
+        </div>
+        <div className="card" style={{ borderLeft: '4px solid var(--success)' }}>
+          <div className="flex items-center gap-sm mb-sm text-secondary">
+            <Users size={18} />
+            <span className="font-semibold">Donatur Dilayani</span>
           </div>
+          <div className="text-2xl font-bold">{stats.jumlahDonatur} orang</div>
         </div>
       </div>
 
-      {/* Summary by Kategori */}
-      {summaryByKategori.length > 0 && (
-        <div className="mb-lg">
-          <h3 className="font-semibold mb-md text-sm">Ringkasan per Kategori</h3>
-          <div className="grid gap-sm" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-            {summaryByKategori.map(([key, val]) => (
-              <div key={key} className="card" style={{ padding: 'var(--space-md)' }}>
-                <div className="text-sm text-secondary">{key}</div>
-                <div className="font-bold text-primary-color">{formatRupiah(val.total)}</div>
-                <div className="text-sm text-tertiary">{val.count} transaksi</div>
+      <h3 className="font-semibold mb-md text-lg">Riwayat Setoran Anda</h3>
+      <div className="stagger">
+        {stats.mySetoran.length === 0 ? (
+          <div className="empty-state">
+            <FileText size={48} />
+            <h3>Belum ada riwayat setoran</h3>
+          </div>
+        ) : (
+          stats.mySetoran.map(s => {
+            const status = getStatusBadge(s.status);
+            return (
+              <div key={s.id} className="list-item" style={{ padding: '16px' }}>
+                <div className="list-item-content">
+                  <div className="list-item-title font-semibold text-md mb-xs">{s.keterangan || 'Setoran Dana'}</div>
+                  <div className="list-item-subtitle flex items-center gap-xs">
+                    <Clock size={12} /> {formatTanggalShort(s.tanggal)}
+                  </div>
+                </div>
+                <div className="list-item-trailing text-right">
+                  <div className="font-bold text-md mb-xs">{formatRupiah(s.totalNominal)}</div>
+                  <div className="list-item-meta">
+                    <span className={`badge badge-${status.variant}`} style={{ fontSize: '0.75rem' }}>
+                      {status.label}
+                    </span>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Table */}
-      <div className="table-container table-mobile">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Tanggal</th>
-              <th>Donatur</th>
-              <th>Kategori</th>
-              <th>Metode</th>
-              <th>Petugas</th>
-              <th className="text-right">Nominal</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(d => {
-              const don = donatur.find(x => x.id === d.donaturId);
-              const kat = kategoriDonasi.find(k => k.id === d.kategoriDonasiId);
-              const met = metodeDonasi.find(m => m.id === d.metodeDonasiId);
-              const pet = users.find(u => u.id === d.petugasId);
-              return (
-                <tr key={d.id}>
-                  <td data-label="Tanggal">{formatTanggalShort(d.tanggal)}</td>
-                  <td data-label="Donatur">{don?.nama || '-'}</td>
-                  <td data-label="Kategori"><span className="badge badge-primary">{kat?.nama || '-'}</span></td>
-                  <td data-label="Metode">{met?.nama || '-'}</td>
-                  <td data-label="Petugas">{pet?.name || '-'}</td>
-                  <td data-label="Nominal" className="text-right font-semibold text-primary-color">{formatRupiah(d.nominal)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+            );
+          })
+        )}
       </div>
     </div>
   );
+}
+
+function LaporanBendahara() {
+  const router = useRouter();
+
+  const menus = [
+    {
+      title: 'Buku Kas Umum (Mutasi)',
+      desc: 'Laporan arus kas masuk dan keluar secara kronologis beserta saldo berjalan.',
+      icon: <Wallet size={24} color="var(--primary)" />,
+      path: '/laporan/mutasi',
+      bg: 'var(--primary-bg)'
+    },
+    {
+      title: 'Penerimaan per Kategori',
+      desc: 'Laporan rinci penerimaan donasi berdasarkan kategori (Zakat, Infaq, dll).',
+      icon: <BarChart3 size={24} color="var(--success)" />,
+      path: '/laporan/penerimaan',
+      bg: 'var(--success-bg)'
+    },
+    {
+      title: 'Realisasi Pengeluaran',
+      desc: 'Laporan rinci penggunaan dana berdasarkan pos-pos pengeluaran.',
+      icon: <FileText size={24} color="var(--danger)" />,
+      path: '/laporan/penggunaan',
+      bg: 'var(--danger-bg)'
+    }
+  ];
+
+  return (
+    <div className="animate-fade-in-up pb-xl">
+      <div className="page-header">
+        <h1>Pusat Laporan</h1>
+        <p>Akses berbagai modul laporan keuangan lembaga</p>
+      </div>
+
+      <div className="grid gap-md" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+        {menus.map((m, i) => (
+          <div 
+            key={i} 
+            className="card cursor-pointer"
+            onClick={() => router.push(m.path)}
+            style={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minHeight: '160px',
+              transition: 'all 0.2s ease',
+              border: '1px solid var(--border)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+            }}
+          >
+            <div>
+              <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '12px', background: m.bg, marginBottom: '16px' }}>
+                {m.icon}
+              </div>
+              <h3 className="font-bold mb-xs text-lg">{m.title}</h3>
+              <p className="text-sm text-secondary line-clamp-2" style={{ lineHeight: '1.5' }}>{m.desc}</p>
+            </div>
+            <div className="flex items-center gap-xs mt-lg text-sm font-semibold" style={{ color: 'var(--primary)' }}>
+              Buka Laporan <ArrowRight size={16} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function LaporanPage() {
+  const { user } = useAuth();
+  
+  if (user?.role === 'petugas') {
+    return <LaporanPetugas />;
+  }
+  
+  return <LaporanBendahara />;
 }

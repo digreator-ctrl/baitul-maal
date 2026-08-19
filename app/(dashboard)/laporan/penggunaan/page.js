@@ -4,13 +4,20 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useData } from '@/contexts/DataContext';
 import { formatRupiah, formatTanggalShort } from '@/lib/mock';
+import { hasPermission } from '@/lib/rbac';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Filter, Minus } from 'lucide-react';
 
 export default function LaporanPenggunaanPage() {
   const { pengeluaran, metodeDonasi, posPengeluaran } = useData();
+  const { user } = useAuth();
   const router = useRouter();
   const [filterPos, setFilterPos] = useState('semua');
   const [filterSumber, setFilterSumber] = useState('semua');
+
+  if (!hasPermission(user, 'laporan.penggunaan')) {
+    return <div className="p-xl text-center">Akses ditolak. Anda tidak memiliki izin.</div>;
+  }
 
   const filtered = useMemo(() => {
     return pengeluaran

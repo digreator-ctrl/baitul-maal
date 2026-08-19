@@ -88,16 +88,20 @@ export default function PenerimaanPage() {
 
   return (
     <div className="animate-fade-in-up">
-      <div className="page-header">
-        <h1>Penerimaan Donasi</h1>
-        <p>Catat donasi dari donatur</p>
-        {hasPermission(user, 'donasi.create') && (
-          <div className="page-header-actions">
-            <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-              <Plus size={18} /> Tambah Donasi
-            </button>
+      <div className="page-header" style={{ marginBottom: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 style={{ marginBottom: 0 }}>Penerimaan Donasi</h1>
+            <p style={{ marginTop: '8px' }}>Catat donasi dari donatur</p>
           </div>
-        )}
+          {hasPermission(user, 'donasi.create') && (
+            <div className="page-header-actions flex gap-xs flex-wrap">
+              <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+                <Plus size={18} /> Tambah Donasi
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Quick Actions */}

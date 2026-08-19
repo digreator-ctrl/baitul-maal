@@ -2,14 +2,21 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { formatRupiah, formatTanggalShort } from '@/lib/mock';
+import { hasPermission } from '@/lib/rbac';
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
 
 export default function MutasiSaldoPage() {
   const { donasi, pengeluaran, donatur, metodeDonasi, kategoriDonasi, posPengeluaran, getSaldoPerMetode } = useData();
+  const { user } = useAuth();
   const router = useRouter();
   const saldo = useMemo(() => getSaldoPerMetode(), [getSaldoPerMetode]);
+
+  if (!hasPermission(user, 'laporan.mutasi')) {
+    return <div className="p-xl text-center">Akses ditolak. Anda tidak memiliki izin.</div>;
+  }
 
   const mutations = useMemo(() => {
     const items = [];

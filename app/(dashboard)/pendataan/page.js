@@ -32,16 +32,19 @@ export default function PendataanPage() {
 
   return (
     <div className="animate-fade-in-up">
-      <div className="page-header">
-        <h1>Pendataan Donatur</h1>
-        {hasPermission(user, 'donatur.create') && (
-          <div className="page-header-actions">
-            <button className="btn btn-primary" onClick={() => router.push('/pendataan/tambah')}>
-              <Plus size={18} />
-              Tambah Donatur
-            </button>
+      <div className="page-header" style={{ marginBottom: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 style={{ marginBottom: 0 }}>Pendataan Donatur</h1>
           </div>
-        )}
+          {hasPermission(user, 'donatur.create') && (
+            <div className="page-header-actions flex gap-xs flex-wrap">
+              <button className="btn btn-primary" onClick={() => router.push('/pendataan/tambah')}>
+                <Plus size={18} /> Tambah Donatur
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Search & Filter */}

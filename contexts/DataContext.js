@@ -214,6 +214,11 @@ export function DataProvider({ children }) {
       }
     });
 
+    // Prevent negative saldo
+    Object.keys(saldo).forEach(k => {
+      saldo[k] = Math.max(0, saldo[k]);
+    });
+
     return saldo;
   }, [donasi, pengeluaran, metodeDonasi]);
 

@@ -10,7 +10,7 @@ import { ArrowLeft, Plus, Minus, Wallet, ChevronDown, ChevronUp } from 'lucide-r
 
 export default function PengeluaranPage() {
   const { user } = useAuth();
-  const { pengeluaran, metodeDonasi, posPengeluaran, addPengeluaran, setoran } = useData();
+  const { pengeluaran, metodeDonasi, posPengeluaran, addPengeluaran, setoran, showToast } = useData();
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [showRincian, setShowRincian] = useState(false);
@@ -34,19 +34,29 @@ export default function PengeluaranPage() {
 
       return {
         ...m,
-        saldoTersedia: totalDiterima - totalKeluar
+        saldoTersedia: Math.max(0, totalDiterima - totalKeluar)
       };
     });
   }, [metodeDonasi, setoran, pengeluaran]);
 
   const totalAkumulasi = rekap.reduce((sum, r) => sum + r.saldoTersedia, 0);
 
+  const handleNominalChange = (e) => {
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    setForm(prev => ({ ...prev, nominal: value }));
+  };
+
+  const formatNominalDisplay = (val) => {
+    if (!val) return '';
+    return parseInt(val).toLocaleString('id-ID');
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.sumberDanaId || !form.posPengeluaranId || !form.nominal) return;
-    const selectedSaldo = saldo[form.sumberDanaId] || 0;
+    const selectedSaldo = rekap.find(r => r.id === form.sumberDanaId)?.saldoTersedia || 0;
     if (parseInt(form.nominal) > selectedSaldo) {
-      alert('Nominal melebihi saldo yang tersedia!');
+      showToast('Nominal melebihi saldo yang tersedia!', 'danger');
       return;
     }
     addPengeluaran({ ...form, nominal: parseInt(form.nominal), createdBy: user?.id });
@@ -60,19 +70,20 @@ export default function PengeluaranPage() {
 
   return (
     <div className="animate-fade-in-up">
-      <div className="page-header">
-        <button className="btn btn-ghost" onClick={() => router.back()} style={{ marginBottom: 'var(--space-sm)' }}>
-          <ArrowLeft size={18} /> Kembali
-        </button>
-        <h1>Catat Pengeluaran</h1>
-        <p>Penggunaan dana donasi untuk kebutuhan lembaga</p>
-        {!readOnly && (
-          <div className="page-header-actions">
-            <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-              <Plus size={18} /> Catat Pengeluaran
-            </button>
+      <div className="page-header" style={{ marginBottom: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 style={{ marginBottom: 0 }}>Catat Pengeluaran</h1>
+            <p style={{ marginTop: '8px' }}>Penggunaan dana donasi untuk kebutuhan lembaga</p>
           </div>
-        )}
+          {!readOnly && (
+            <div className="page-header-actions flex gap-xs flex-wrap">
+              <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+                <Plus size={18} /> Catat Pengeluaran
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Saldo Terkini */}
@@ -143,17 +154,22 @@ export default function PengeluaranPage() {
             const met = metodeDonasi.find(m => m.id === pg.sumberDanaId);
             const pos = posPengeluaran.find(p => p.id === pg.posPengeluaranId);
             return (
-              <div key={pg.id} className="list-item">
-                <div className="list-item-avatar" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>
-                  <Minus size={20} />
+              <div 
+                key={pg.id} 
+                className="list-item"
+                style={{ display: 'block', padding: '16px', cursor: 'pointer' }}
+                onClick={() => router.push(`/keuangan/pengeluaran/${pg.id}`)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div className="list-item-subtitle" style={{ color: 'var(--text-secondary)' }}>
+                    {new Date(pg.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
+                  </div>
+                  <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>{met?.nama || '-'}</span>
                 </div>
-                <div className="list-item-content">
-                  <div className="list-item-title">{pos?.nama || '-'}</div>
-                  <div className="list-item-subtitle">{met?.nama} · {formatTanggalShort(pg.tanggal)}</div>
-                  {pg.keterangan && <div className="list-item-subtitle">{pg.keterangan}</div>}
-                </div>
-                <div className="list-item-trailing">
-                  <div className="font-bold" style={{ color: 'var(--danger)' }}>-{formatRupiah(pg.nominal)}</div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="list-item-title" style={{ fontSize: '1rem' }}>{pos?.nama || '-'}</div>
+                  <div className="list-item-value" style={{ color: 'var(--danger)', fontSize: '1rem' }}>{formatRupiah(pg.nominal)}</div>
                 </div>
               </div>
             );
@@ -173,19 +189,33 @@ export default function PengeluaranPage() {
               <div className="modal-body">
                 <div className="form-group">
                   <label className="form-label">Tanggal *</label>
-                  <input type="date" className="form-input" value={form.tanggal} onChange={(e) => setForm(prev => ({ ...prev, tanggal: e.target.value }))} required />
+                  <input 
+                    type="date" 
+                    className="form-input" 
+                    value={form.tanggal} 
+                    onChange={(e) => setForm(prev => ({ ...prev, tanggal: e.target.value }))} 
+                    onClick={(e) => e.target.showPicker()}
+                    required 
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Sumber Dana *</label>
                   <select className="form-select" value={form.sumberDanaId} onChange={(e) => setForm(prev => ({ ...prev, sumberDanaId: e.target.value }))} required>
                     <option value="">-- Pilih Sumber Dana --</option>
                     {rekap.map(m => (
-                      <option key={m.id} value={m.id}>{m.nama} (Saldo: {formatRupiah(m.saldoTersedia)})</option>
+                      <option key={m.id} value={m.id} disabled={m.saldoTersedia <= 0}>{m.nama}</option>
                     ))}
                   </select>
-                  {form.sumberDanaId && (
-                    <span className="form-hint">Saldo tersedia: {formatRupiah(rekap.find(r => r.id === form.sumberDanaId)?.saldoTersedia || 0)}</span>
-                  )}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Saldo Tersedia</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={form.sumberDanaId ? formatRupiah(rekap.find(r => r.id === form.sumberDanaId)?.saldoTersedia || 0) : '-'} 
+                    readOnly
+                    style={{ background: 'var(--bg)', color: 'var(--text-secondary)' }}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Pos Pengeluaran *</label>
@@ -198,7 +228,14 @@ export default function PengeluaranPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Nominal (Rp) *</label>
-                  <input type="number" className="form-input" placeholder="0" value={form.nominal} onChange={(e) => setForm(prev => ({ ...prev, nominal: e.target.value }))} min="1000" required />
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="0" 
+                    value={formatNominalDisplay(form.nominal)} 
+                    onChange={handleNominalChange} 
+                    required 
+                  />
                   {form.sumberDanaId && parseInt(form.nominal) > (rekap.find(r => r.id === form.sumberDanaId)?.saldoTersedia || 0) && (
                     <span className="form-error">Nominal melebihi saldo!</span>
                   )}
