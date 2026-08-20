@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
 import { hasPermission } from '@/lib/rbac';
-import { Calendar, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Calendar, AlertTriangle, CheckCircle2, Clock, XCircle, Download, Printer } from 'lucide-react';
 
 export function Kolektabilitas() {
   const { user } = useAuth();
@@ -81,8 +81,45 @@ export function Kolektabilitas() {
   const totalAmount = kolektabilitas.reduce((sum, d) => sum + d.totalDonasi, 0);
   const persen = kolektabilitas.length > 0 ? Math.round((sudahCount / kolektabilitas.length) * 100) : 0;
 
+  const handleExport = () => {
+    const headers = ['No', 'Nama Donatur', 'Petugas', 'Status', 'Jumlah Donasi', 'Total Nominal', 'Terakhir Donasi'];
+    const csvData = kolektabilitas.map((d, i) => {
+      return [
+        i + 1,
+        `"${d.nama}"`,
+        `"${d.petugasNama}"`,
+        d.sudahDonasi ? 'Sudah Didata' : 'Belum Didata',
+        d.jumlahDonasi,
+        d.totalDonasi,
+        d.lastDonasiTanggal ? `"${formatTanggalShort(d.lastDonasiTanggal)}"` : '-'
+      ].join(',');
+    });
+    
+    const csvContent = [headers.join(','), ...csvData].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Kolektabilitas_${filterBulan}_${filterTahun}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    window.print();
+  };
+
   return (
     <div className="animate-fade-in-up pb-xl">
+      <div className="flex justify-end gap-sm mb-md" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '16px' }}>
+        <button className="btn btn-secondary flex items-center gap-xs" onClick={handleExportPDF} style={{ color: 'var(--text)' }}>
+          <Printer size={16} /> Export PDF
+        </button>
+        <button className="btn btn-primary flex items-center gap-xs" onClick={handleExport}>
+          <Download size={16} /> Export CSV
+        </button>
+      </div>
       {/* Filters */}
       <div className="card mb-lg" style={{ padding: 'var(--space-md)' }}>
         <div className="flex items-center gap-sm mb-md">
@@ -114,11 +151,11 @@ export function Kolektabilitas() {
           <div className="text-2xl font-bold">{kolektabilitas.length}</div>
         </div>
         <div className="card" style={{ borderLeft: '4px solid var(--success)' }}>
-          <div className="text-sm text-secondary mb-xs">Sudah Donasi</div>
+          <div className="text-sm text-secondary mb-xs">Sudah Didata</div>
           <div className="text-2xl font-bold" style={{ color: 'var(--success)' }}>{sudahCount}</div>
         </div>
         <div className="card" style={{ borderLeft: '4px solid var(--danger)' }}>
-          <div className="text-sm text-secondary mb-xs">Belum Donasi</div>
+          <div className="text-sm text-secondary mb-xs">Belum Didata</div>
           <div className="text-2xl font-bold" style={{ color: 'var(--danger)' }}>{belumCount}</div>
         </div>
         <div className="card" style={{ borderLeft: '4px solid var(--info)' }}>
@@ -169,11 +206,11 @@ export function Kolektabilitas() {
                   <td data-label="Status">
                     {d.sudahDonasi ? (
                       <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <CheckCircle2 size={12} /> Sudah
+                        <CheckCircle2 size={12} /> Sudah Didata
                       </span>
                     ) : (
                       <span className="badge badge-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <XCircle size={12} /> Belum
+                        <XCircle size={12} /> Belum Didata
                       </span>
                     )}
                   </td>

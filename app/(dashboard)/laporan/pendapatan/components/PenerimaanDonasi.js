@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { formatRupiah, formatTanggalShort } from '@/lib/mock';
 import { hasPermission } from '@/lib/rbac';
-import { Filter, HandCoins, Calendar, Search } from 'lucide-react';
+import { Filter, HandCoins, Calendar, Search, Download, Printer } from 'lucide-react';
 
 export function PenerimaanDonasi() {
   const { user } = useAuth();
@@ -60,8 +60,51 @@ export function PenerimaanDonasi() {
 
   const totalFiltered = filtered.reduce((sum, d) => sum + d.nominal, 0);
 
+  const handleExport = () => {
+    const headers = ['No', 'Tanggal', 'Nama Donatur', 'Nominal', 'Sumber Dana', 'Petugas'];
+    const csvData = filtered.map((d, i) => {
+      const don = donatur.find(x => x.id === d.donaturId);
+      const met = metodeDonasi.find(m => m.id === d.metodeDonasiId);
+      const pet = users.find(u => u.id === d.petugasId);
+      
+      return [
+        i + 1,
+        `"${formatTanggalShort(d.tanggal)}"`,
+        `"${don?.nama || '-'}"`,
+        d.nominal,
+        `"${met?.nama || '-'}"`,
+        `"${pet?.name || '-'}"`
+      ].join(',');
+    });
+    
+    // Add total row
+    csvData.push(`"","","Total",${totalFiltered},"",""`);
+    
+    const csvContent = [headers.join(','), ...csvData].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Penerimaan_Donasi_${filterBulan}_${filterTahun}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    window.print();
+  };
+
   return (
     <div className="animate-fade-in-up pb-xl">
+      <div className="flex justify-end gap-sm mb-md" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '16px' }}>
+        <button className="btn btn-secondary flex items-center gap-xs" onClick={handleExportPDF} style={{ color: 'var(--text)' }}>
+          <Printer size={16} /> Export PDF
+        </button>
+        <button className="btn btn-primary flex items-center gap-xs" onClick={handleExport}>
+          <Download size={16} /> Export CSV
+        </button>
+      </div>
       {/* Summary */}
       <div className="saldo-card mb-lg">
         <div className="saldo-label">Total Penerimaan Donasi</div>

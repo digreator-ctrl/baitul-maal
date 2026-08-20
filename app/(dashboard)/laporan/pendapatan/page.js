@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/rbac';
 import { PenerimaanDonasi } from './components/PenerimaanDonasi';
 import { Kolektabilitas } from './components/Kolektabilitas';
-import { HandCoins, Users } from 'lucide-react';
+import { DataDonatur } from './components/DataDonatur';
+import { HandCoins, Users, List } from 'lucide-react';
 
 export default function LaporanPendapatanPage() {
   const { user } = useAuth();
@@ -19,6 +20,9 @@ export default function LaporanPendapatanPage() {
     if (hasPermission(user, 'laporan.kolektabilitas')) {
       tabs.push({ id: 'kolektabilitas', label: 'Kolektabilitas', icon: <Users size={16} /> });
     }
+    // All users with access to laporan.pendapatan can see Data Donatur, or we can just reuse a permission
+    // For now, let's just add it if they can see Kolektabilitas or Penerimaan
+    tabs.push({ id: 'donatur', label: 'Data Donatur', icon: <List size={16} /> });
     return tabs;
   }, [user]);
 
@@ -66,6 +70,7 @@ export default function LaporanPendapatanPage() {
       <div style={{ paddingTop: '24px' }}>
         {activeTab === 'penerimaan' && <PenerimaanDonasi />}
         {activeTab === 'kolektabilitas' && <Kolektabilitas />}
+        {activeTab === 'donatur' && <DataDonatur />}
       </div>
     </div>
   );
