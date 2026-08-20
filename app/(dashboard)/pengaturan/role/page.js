@@ -41,15 +41,19 @@ const PERMISSION_GROUPS = [
       { key: 'keuangan.verifikasi_action', label: 'Aksi Terima/Tolak Setoran' },
       { key: 'keuangan.pengeluaran', label: 'Lihat Pengeluaran' },
       { key: 'keuangan.pengeluaran_create', label: 'Catat Pengeluaran Baru' },
-      { key: 'keuangan.buku_kas', label: 'Lihat Buku Kas' },
     ]
   },
   {
     group: 'Laporan',
     permissions: [
-      { key: 'laporan.donasi', label: 'Laporan Donasi' },
-      { key: 'laporan.penggunaan', label: 'Laporan Penggunaan Dana' },
-      { key: 'laporan.mutasi', label: 'Laporan Mutasi Saldo' },
+      { key: 'laporan.view', label: 'Akses Modul Laporan' },
+      { key: 'laporan.penerimaan_donasi', label: 'Laporan Penerimaan Donasi' },
+      { key: 'laporan.kolektabilitas', label: 'Laporan Kolektabilitas Donatur' },
+      { key: 'laporan.mutasi_setoran', label: 'Laporan Mutasi Setoran Petugas' },
+      { key: 'laporan.realisasi_pengeluaran', label: 'Laporan Realisasi Pengeluaran' },
+      { key: 'laporan.buku_kas', label: 'Laporan Buku Kas & Bank' },
+      { key: 'laporan.posisi_saldo', label: 'Laporan Posisi Saldo' },
+      { key: 'laporan.aktivitas', label: 'Laporan Aktivitas (Surplus/Defisit)' },
     ]
   },
   {
