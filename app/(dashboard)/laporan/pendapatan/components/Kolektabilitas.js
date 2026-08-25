@@ -6,13 +6,15 @@ import { useData } from '@/contexts/DataContext';
 import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
 import { hasPermission } from '@/lib/rbac';
 import { Calendar, AlertTriangle, CheckCircle2, Clock, XCircle, Download, Printer } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export function Kolektabilitas() {
   const { user } = useAuth();
   const { donasi, donatur, users } = useData();
   const now = new Date();
-  const [filterBulan, setFilterBulan] = useState(now.getMonth().toString());
-  const [filterTahun, setFilterTahun] = useState(now.getFullYear().toString());
+  const [filterBulan, setFilterBulan] = useState('semua');
+  const [filterTahun, setFilterTahun] = useState('semua');
 
   if (!hasPermission(user, 'laporan.kolektabilitas')) {
     return <div className="p-xl text-center">Akses ditolak. Anda tidak memiliki izin.</div>;
@@ -42,16 +44,16 @@ export function Kolektabilitas() {
       donaturList = donatur.filter(d => d.createdBy === user?.id);
     }
 
-    const bulan = parseInt(filterBulan);
-    const tahun = parseInt(filterTahun);
+    const filterBulanInt = filterBulan !== 'semua' ? parseInt(filterBulan) : null;
+    const filterTahunInt = filterTahun !== 'semua' ? parseInt(filterTahun) : null;
 
     return donaturList.map(d => {
-      // Find donations from this donatur in the selected period
+      // Find donations from this donatur in the selected period (or all if 'semua')
       const donasiDonatur = donasi.filter(dn => {
         const date = new Date(dn.tanggal);
-        return dn.donaturId === d.id 
-          && date.getMonth() === bulan 
-          && date.getFullYear() === tahun;
+        const monthMatch = filterBulanInt === null || date.getMonth() === filterBulanInt;
+        const yearMatch = filterTahunInt === null || date.getFullYear() === filterTahunInt;
+        return dn.donaturId === d.id && monthMatch && yearMatch;
       });
 
       const totalDonasi = donasiDonatur.reduce((sum, dn) => sum + dn.nominal, 0);
@@ -107,7 +109,31 @@ export function Kolektabilitas() {
   };
 
   const handleExportPDF = () => {
-    window.print();
+    const doc = new jsPDF();
+    doc.text('Laporan Kolektabilitas', 14, 15);
+    
+    const headers = [['No', 'Nama Donatur', 'Petugas', 'Status', 'Jumlah Donasi', 'Total Nominal', 'Terakhir Donasi']];
+    const data = kolektabilitas.map((d, i) => {
+      return [
+        i + 1,
+        d.nama,
+        d.petugasNama,
+        d.sudahDonasi ? 'Sudah Didata' : 'Belum Didata',
+        d.jumlahDonasi,
+        formatRupiah(d.totalDonasi),
+        d.lastDonasiTanggal ? formatTanggalShort(d.lastDonasiTanggal) : '-'
+      ];
+    });
+    
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: 20,
+      theme: 'grid',
+      headStyles: { fillColor: [74, 107, 72] }, // Primary color
+    });
+    
+    doc.save(`Kolektabilitas_${filterBulan}_${filterTahun}.pdf`);
   };
 
   return (
@@ -128,16 +154,18 @@ export function Kolektabilitas() {
         </div>
         <div className="form-row">
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <select className="form-select" value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)}>
-              {bulanOptions.map(b => (
-                <option key={b.value} value={b.value}>{b.label}</option>
+            <select className="form-select" value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)}>
+              <option value="semua">Semua Tahun</option>
+              {availableYears.map(y => (
+                <option key={y} value={y}>{y}</option>
               ))}
             </select>
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <select className="form-select" value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)}>
-              {availableYears.map(y => (
-                <option key={y} value={y}>{y}</option>
+            <select className="form-select" value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)}>
+              <option value="semua">Semua Bulan</option>
+              {bulanOptions.map(b => (
+                <option key={b.value} value={b.value}>{b.label}</option>
               ))}
             </select>
           </div>

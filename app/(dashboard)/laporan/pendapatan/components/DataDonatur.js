@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { Filter, Search, Download, Printer } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export function DataDonatur() {
   const { user } = useAuth();
@@ -53,7 +55,31 @@ export function DataDonatur() {
   };
 
   const handleExportPDF = () => {
-    window.print();
+    const doc = new jsPDF();
+    doc.text('Laporan Data Donatur', 14, 15);
+    
+    const headers = [['No', 'Nama Donatur', 'No WA', 'Kota', 'Kategori', 'Petugas']];
+    const data = filtered.map((d, i) => {
+      const petugas = users.find(u => u.id === d.createdBy);
+      return [
+        i + 1,
+        d.nama,
+        d.noWa,
+        d.kota,
+        d.kategori,
+        petugas?.name || '-'
+      ];
+    });
+    
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: 20,
+      theme: 'grid',
+      headStyles: { fillColor: [74, 107, 72] }, // Primary color
+    });
+    
+    doc.save(`Data_Donatur_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   return (

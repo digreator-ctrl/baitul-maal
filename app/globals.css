@@ -449,6 +449,18 @@ input, select, textarea, button {
   }
 }
 
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+@media (min-width: 640px) {
+  .form-row-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+  }
+}
+
 /* ---- Badge ---- */
 .badge {
   display: inline-flex;
