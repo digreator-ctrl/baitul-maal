@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggalDDMMYYYY, getStatusBadge } from '@/lib/mock';
 import { hasPermission } from '@/lib/rbac';
 import { Calendar, AlertTriangle, CheckCircle2, Clock, XCircle, Download, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -83,6 +83,34 @@ export function Kolektabilitas() {
   const totalAmount = kolektabilitas.reduce((sum, d) => sum + d.totalDonasi, 0);
   const persen = kolektabilitas.length > 0 ? Math.round((sudahCount / kolektabilitas.length) * 100) : 0;
 
+  const getPeriodeString = () => {
+    let periodeStr = 'Semua Periode';
+    if (filterBulan !== 'semua' && filterTahun !== 'semua') {
+      const bulanLabel = bulanOptions.find(b => b.value === filterBulan)?.label;
+      periodeStr = `${bulanLabel} ${filterTahun}`;
+    } else if (filterTahun !== 'semua') {
+      periodeStr = `Tahun ${filterTahun}`;
+    } else if (filterBulan !== 'semua') {
+      const bulanLabel = bulanOptions.find(b => b.value === filterBulan)?.label;
+      periodeStr = `Bulan ${bulanLabel}`;
+    }
+    return periodeStr.toUpperCase();
+  };
+
+  const getExportFileName = () => {
+    let periodeStr = 'Semua Periode';
+    if (filterBulan !== 'semua' && filterTahun !== 'semua') {
+      const bulanLabel = bulanOptions.find(b => b.value === filterBulan)?.label;
+      periodeStr = `${filterTahun} ${bulanLabel}`;
+    } else if (filterTahun !== 'semua') {
+      periodeStr = `${filterTahun}`;
+    } else if (filterBulan !== 'semua') {
+      const bulanLabel = bulanOptions.find(b => b.value === filterBulan)?.label;
+      periodeStr = `${bulanLabel}`;
+    }
+    return `Kolektabilitas Periode ${periodeStr}`;
+  };
+
   const handleExport = () => {
     const headers = ['No', 'Nama Donatur', 'Petugas', 'Status', 'Jumlah Donasi', 'Total Nominal', 'Terakhir Donasi'];
     const csvData = kolektabilitas.map((d, i) => {
@@ -93,7 +121,7 @@ export function Kolektabilitas() {
         d.sudahDonasi ? 'Sudah Didata' : 'Belum Didata',
         d.jumlahDonasi,
         d.totalDonasi,
-        d.lastDonasiTanggal ? `"${formatTanggalShort(d.lastDonasiTanggal)}"` : '-'
+        d.lastDonasiTanggal ? `"${formatTanggalDDMMYYYY(d.lastDonasiTanggal)}"` : '-'
       ].join(',');
     });
     
@@ -102,17 +130,20 @@ export function Kolektabilitas() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Kolektabilitas_${filterBulan}_${filterTahun}.csv`);
+    link.setAttribute('download', `${getExportFileName()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const handleExportPDF = () => {
-    const doc = new jsPDF();
-    doc.text('Laporan Kolektabilitas', 14, 15);
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     
-    const headers = [['No', 'Nama Donatur', 'Petugas', 'Status', 'Jumlah Donasi', 'Total Nominal', 'Terakhir Donasi']];
+    const periodeStr = getPeriodeString();
+    
+    const headers = [['NO', 'NAMA DONATUR', 'PETUGAS', 'STATUS', 'JUMLAH DONASI', 'TOTAL NOMINAL', 'TERAKHIR DONASI']];
     const data = kolektabilitas.map((d, i) => {
       return [
         i + 1,
@@ -121,19 +152,157 @@ export function Kolektabilitas() {
         d.sudahDonasi ? 'Sudah Didata' : 'Belum Didata',
         d.jumlahDonasi,
         formatRupiah(d.totalDonasi),
-        d.lastDonasiTanggal ? formatTanggalShort(d.lastDonasiTanggal) : '-'
+        d.lastDonasiTanggal ? formatTanggalDDMMYYYY(d.lastDonasiTanggal) : '-'
       ];
     });
     
+    // Add total row
+    data.push([
+      { content: 'TOTAL', colSpan: 5, styles: { halign: 'center', fontStyle: 'bold' } }, 
+      { content: formatRupiah(totalAmount), styles: { fontStyle: 'bold', halign: 'right' } }, 
+      ''
+    ]);
+    
+    const totalPagesExp = '{total_pages_count_string}';
+
     autoTable(doc, {
       head: headers,
       body: data,
-      startY: 20,
+      startY: 91,
+      margin: { top: 30, left: 14, right: 14, bottom: 20 },
       theme: 'grid',
-      headStyles: { fillColor: [74, 107, 72] }, // Primary color
+      styles: {
+        fontSize: 8,
+        cellPadding: 1.5,
+      },
+      headStyles: { 
+        fillColor: [255, 255, 255], 
+        textColor: [0, 0, 0], 
+        lineColor: [0, 0, 0], 
+        lineWidth: 0.1, 
+        fontStyle: 'bold', 
+        halign: 'center' 
+      },
+      bodyStyles: { 
+        textColor: [0, 0, 0], 
+        lineColor: [0, 0, 0], 
+        lineWidth: 0.1 
+      },
+      columnStyles: {
+        4: { halign: 'center' },
+        5: { halign: 'right' },
+        6: { halign: 'center' }
+      },
+      didDrawPage: function (data) {
+        if (data.pageNumber === 1) {
+          // Header Page 1
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('YAYASAN AR-ROSYAD AL-ISLAMIY', pageWidth / 2, 15, { align: 'center' });
+          
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Jl. Masjid Basyaruddin, RT 21 RW 05, Desa Bogem, Kecamatan Gurah, Kabupaten Kediri, Jawa Timur 64181', pageWidth / 2, 20, { align: 'center' });
+          doc.text('Telp/WA: 085259838384 | Website: http://arrosyad.or.id', pageWidth / 2, 25, { align: 'center' });
+          
+          // Double line
+          doc.setLineWidth(0.5);
+          doc.line(14, 28, pageWidth - 14, 28);
+          doc.setLineWidth(0.2);
+          doc.line(14, 29, pageWidth - 14, 29);
+          
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('LAPORAN KOLEKTABILITAS', pageWidth / 2, 40, { align: 'center' });
+          doc.text(`PERIODE: ${periodeStr}`, pageWidth / 2, 46, { align: 'center' });
+          
+          // Summary Boxes
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          
+          const lx = 14;
+          const rx = 100;
+          const w1 = 30;
+          const w2 = 5;
+          const w3 = 30;
+          const rh = 7;
+          const y1 = 55;
+          const y2 = 64;
+          const y3 = 71;
+
+          doc.setLineWidth(0.2);
+
+          // Left Row 1
+          doc.rect(lx, y1, w1, rh); doc.text('Total Donatur', lx + 2, y1 + 5);
+          doc.rect(lx+w1, y1, w2, rh); doc.text(':', lx+w1 + 1.5, y1 + 5);
+          doc.rect(lx+w1+w2, y1, w3, rh); doc.text(`${kolektabilitas.length}`, lx+w1+w2 + 2, y1 + 5);
+
+          // Right Row 1
+          doc.rect(rx, y1, w1, rh); doc.text('Kolektabilitas', rx + 2, y1 + 5);
+          doc.rect(rx+w1, y1, w2, rh); doc.text(':', rx+w1 + 1.5, y1 + 5);
+          doc.rect(rx+w1+w2, y1, w3, rh); doc.text(`${persen}%`, rx+w1+w2 + 2, y1 + 5);
+
+          // Left Row 2
+          doc.rect(lx, y2, w1, rh); doc.text('Sudah Didata', lx + 2, y2 + 5);
+          doc.rect(lx+w1, y2, w2+w3, rh); doc.text(`${sudahCount}`, lx+w1 + 2, y2 + 5);
+
+          // Right Row 2
+          doc.rect(rx, y2, w1+w2+w3, rh); doc.text('Total Terkumpul', rx + (w1+w2+w3)/2, y2 + 5, { align: 'center' });
+
+          // Left Row 3
+          doc.rect(lx, y3, w1, rh); doc.text('Belum Didata', lx + 2, y3 + 5);
+          doc.rect(lx+w1, y3, w2+w3, rh); doc.text(`${belumCount}`, lx+w1 + 2, y3 + 5);
+
+          // Right Row 3
+          doc.rect(rx, y3, w1+w2+w3, rh); doc.text(`${formatRupiah(totalAmount)}`, rx + (w1+w2+w3)/2, y3 + 5, { align: 'center' });
+          
+        } else {
+          // Header subsequent pages
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(150, 150, 150);
+          
+          let tahunStr = filterTahun !== 'semua' ? filterTahun : 'Semua Tahun';
+          let bulanStr = filterBulan !== 'semua' ? bulanOptions.find(b => b.value === filterBulan)?.label : 'Semua Bulan';
+          
+          doc.text(`TAHUN: ${tahunStr.toUpperCase()}`, 14, 15);
+          doc.text(`BULAN: ${bulanStr.toUpperCase()}`, 14, 20);
+          
+          doc.setLineWidth(0.5);
+          doc.setDrawColor(150, 150, 150);
+          doc.line(14, 23, pageWidth - 14, 23);
+          
+          doc.setTextColor(0, 0, 0);
+          doc.setDrawColor(0, 0, 0);
+        }
+
+        // Footer
+        const str = `halaman ${doc.internal.getNumberOfPages()} dari ${totalPagesExp}`;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(150, 150, 150);
+        
+        doc.setLineWidth(0.1);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+        
+        doc.text('LAPORAN KOLEKTABILITAS', 14, pageHeight - 10);
+        const expectedStr = `halaman ${doc.internal.getNumberOfPages()} dari 1`;
+        const textWidth = doc.getStringUnitWidth(expectedStr) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+        doc.text(str, pageWidth - 14 - textWidth, pageHeight - 10);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setDrawColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+      }
     });
     
-    doc.save(`Kolektabilitas_${filterBulan}_${filterTahun}.pdf`);
+    if (typeof doc.putTotalPages === 'function') {
+      doc.putTotalPages(totalPagesExp);
+    }
+
+    doc.save(`${getExportFileName()}.pdf`);
   };
 
   return (
@@ -246,7 +415,7 @@ export function Kolektabilitas() {
                   <td data-label="Nominal" className="text-right font-semibold text-primary-color">
                     {d.totalDonasi > 0 ? formatRupiah(d.totalDonasi) : '-'}
                   </td>
-                  <td data-label="Terakhir">{d.lastDonasiTanggal ? formatTanggalShort(d.lastDonasiTanggal) : '-'}</td>
+                  <td data-label="Terakhir">{d.lastDonasiTanggal ? formatTanggalDDMMYYYY(d.lastDonasiTanggal) : '-'}</td>
                 </tr>
               ))
             )}
