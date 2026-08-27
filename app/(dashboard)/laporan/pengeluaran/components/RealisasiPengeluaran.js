@@ -14,6 +14,11 @@ export function RealisasiPengeluaran() {
   const { pengeluaran, metodeDonasi, posPengeluaran, users } = useData();
   const [filterPos, setFilterPos] = useState('semua');
   const [filterSumber, setFilterSumber] = useState('semua');
+  const [filterBendahara, setFilterBendahara] = useState('semua');
+  
+  const bendaharaList = useMemo(() => {
+    return users.filter(u => u.role === 'admin' || u.role === 'bendahara');
+  }, [users]);
   
   const [dateFilterMode, setDateFilterMode] = useState('semua');
   const [startDate, setStartDate] = useState('');
@@ -104,10 +109,11 @@ export function RealisasiPengeluaran() {
         if (!checkDateInRange(p.tanggal, filterStart, filterEnd)) return false;
         if (filterPos !== 'semua' && p.posPengeluaranId !== filterPos) return false;
         if (filterSumber !== 'semua' && p.sumberDanaId !== filterSumber) return false;
+        if (filterBendahara !== 'semua' && p.createdBy !== filterBendahara) return false;
         return true;
       })
       .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-  }, [pengeluaran, filterStart, filterEnd, filterPos, filterSumber]);
+  }, [pengeluaran, filterStart, filterEnd, filterPos, filterSumber, filterBendahara]);
 
   const totalFiltered = filtered.reduce((sum, p) => sum + p.nominal, 0);
 
@@ -119,22 +125,24 @@ export function RealisasiPengeluaran() {
   };
 
   const handleExport = () => {
-    const headers = ['No', 'Tanggal', 'Pos Pengeluaran', 'Sumber Dana', 'Keterangan', 'Nominal'];
+    const headers = ['No', 'Tanggal', 'Pos Pengeluaran', 'Sumber Dana', 'Keterangan', 'Nominal', 'Bendahara'];
     const csvData = filtered.map((row, i) => {
       const met = metodeDonasi.find(m => m.id === row.sumberDanaId);
       const pos = posPengeluaran.find(x => x.id === row.posPengeluaranId);
+      const ben = users.find(u => u.id === row.createdBy);
       return [
         i + 1,
         formatTanggalDDMMYYYY(row.tanggal),
         `"${pos?.nama || '-'}"`,
         `"${met?.nama || '-'}"`,
         `"${row.keterangan || '-'}"`,
-        row.nominal
+        row.nominal,
+        `"${ben?.name || '-'}"`
       ].join(',');
     });
     
     // Add total row
-    csvData.push(`"","","","","Total",${totalFiltered}`);
+    csvData.push(`"","","","","Total",${totalFiltered},""`);
     
     const csvContent = [headers.join(','), ...csvData].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -154,24 +162,27 @@ export function RealisasiPengeluaran() {
     
     const periodeStr = getSelectedPeriodLabel().toUpperCase();
     
-    const headers = [['NO', 'TANGGAL', 'POS PENGELUARAN', 'SUMBER DANA', 'KETERANGAN', 'NOMINAL']];
+    const headers = [['NO', 'TANGGAL', 'POS PENGELUARAN', 'SUMBER DANA', 'KETERANGAN', 'NOMINAL', 'BENDAHARA']];
     const data = filtered.map((row, i) => {
       const met = metodeDonasi.find(m => m.id === row.sumberDanaId);
       const pos = posPengeluaran.find(x => x.id === row.posPengeluaranId);
+      const ben = users.find(u => u.id === row.createdBy);
       return [
         i + 1,
         formatTanggalDDMMYYYY(row.tanggal),
         pos?.nama || '-',
         met?.nama || '-',
         row.keterangan || '-',
-        formatRupiah(row.nominal)
+        formatRupiah(row.nominal),
+        ben?.name || '-'
       ];
     });
     
     // Add total row
     data.push([
       { content: 'TOTAL', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } }, 
-      { content: formatRupiah(totalFiltered), styles: { fontStyle: 'bold', halign: 'right' } }
+      { content: formatRupiah(totalFiltered), styles: { fontStyle: 'bold', halign: 'right' } },
+      ''
     ]);
     
     const totalPagesExp = '{total_pages_count_string}';
@@ -324,6 +335,15 @@ export function RealisasiPengeluaran() {
               ))}
             </select>
           </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label text-sm text-secondary">Bendahara</label>
+            <select className="form-select" value={filterBendahara} onChange={(e) => setFilterBendahara(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px' }}>
+              <option value="semua">Semua Bendahara</option>
+              {bendaharaList.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -340,12 +360,13 @@ export function RealisasiPengeluaran() {
               <th>Sumber Dana</th>
               <th>Keterangan</th>
               <th className="text-right">Nominal</th>
+              <th>Bendahara</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center text-secondary" style={{ padding: '32px' }}>
+                <td colSpan={7} className="text-center text-secondary" style={{ padding: '32px' }}>
                   Tidak ada data untuk filter yang dipilih.
                 </td>
               </tr>
@@ -353,6 +374,7 @@ export function RealisasiPengeluaran() {
               filtered.map((p, idx) => {
                 const met = metodeDonasi.find(m => m.id === p.sumberDanaId);
                 const pos = posPengeluaran.find(x => x.id === p.posPengeluaranId);
+                const ben = users.find(u => u.id === p.createdBy);
                 return (
                   <tr key={p.id}>
                     <td data-label="No">{idx + 1}</td>
@@ -361,6 +383,7 @@ export function RealisasiPengeluaran() {
                     <td data-label="Sumber">{met?.nama || '-'}</td>
                     <td data-label="Keterangan" className="text-sm">{p.keterangan || '-'}</td>
                     <td data-label="Nominal" className="text-right font-semibold" style={{ color: 'var(--danger)' }}>{formatRupiah(p.nominal)}</td>
+                    <td data-label="Bendahara">{ben?.name || '-'}</td>
                   </tr>
                 );
               })
@@ -371,6 +394,7 @@ export function RealisasiPengeluaran() {
               <tr>
                 <td colSpan={5} className="font-bold text-right">Total</td>
                 <td className="text-right font-bold" style={{ color: 'var(--danger)' }}>{formatRupiah(totalFiltered)}</td>
+                <td></td>
               </tr>
             </tfoot>
           )}
