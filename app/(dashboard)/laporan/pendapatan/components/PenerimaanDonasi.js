@@ -20,7 +20,12 @@ export function PenerimaanDonasi() {
   const [tempStartDate, setTempStartDate] = useState('');
   const [tempEndDate, setTempEndDate] = useState('');
   const [filterSumber, setFilterSumber] = useState('semua');
+  const [filterPetugas, setFilterPetugas] = useState('semua');
   const [search, setSearch] = useState('');
+
+  const petugasList = useMemo(() => {
+    return users.filter(u => u.role === 'petugas');
+  }, [users]);
 
   if (!hasPermission(user, 'laporan.penerimaan_donasi')) {
     return <div className="p-xl text-center">Akses ditolak. Anda tidak memiliki izin.</div>;
@@ -105,6 +110,7 @@ export function PenerimaanDonasi() {
       .filter(d => {
         // Petugas only sees own data
         if (isPetugas && d.petugasId !== user?.id) return false;
+        if (!isPetugas && filterPetugas !== 'semua' && d.petugasId !== filterPetugas) return false;
         // Period filter
         if (!checkDateInRange(d.tanggal, filterStart, filterEnd)) return false;
         // Sumber dana filter
@@ -141,7 +147,7 @@ export function PenerimaanDonasi() {
   };
 
   const handleExport = () => {
-    const headers = ['No', 'Tanggal', 'Nama Donatur', 'Nominal', 'Sumber Dana', 'Petugas'];
+    const headers = ['No', 'Tanggal', 'Sumber Dana', 'Nama Donatur', 'Nominal', 'Petugas'];
     const csvData = filtered.map((d, i) => {
       const don = donatur.find(x => x.id === d.donaturId);
       const met = metodeDonasi.find(m => m.id === d.metodeDonasiId);
@@ -150,15 +156,15 @@ export function PenerimaanDonasi() {
       return [
         i + 1,
         `"${formatTanggalDDMMYYYY(d.tanggal)}"`,
+        `"${met?.nama || '-'}"`,
         `"${don?.nama || '-'}"`,
         d.nominal,
-        `"${met?.nama || '-'}"`,
         `"${pet?.name || '-'}"`
       ].join(',');
     });
     
     // Add total row
-    csvData.push(`"","","Total",${totalFiltered},"",""`);
+    csvData.push(`"","","","Total",${totalFiltered},""`);
     
     const csvContent = [headers.join(','), ...csvData].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -179,7 +185,7 @@ export function PenerimaanDonasi() {
     const periodeStr = getPeriodeString();
     const sumberDanaStr = getSumberDanaString();
     
-    const headers = [['NO', 'TANGGAL', 'NAMA DONATUR', 'NOMINAL', 'SUMBER DANA', 'PETUGAS']];
+    const headers = [['NO', 'TANGGAL', 'SUMBER DANA', 'NAMA DONATUR', 'NOMINAL', 'PETUGAS']];
     const data = filtered.map((d, i) => {
       const don = donatur.find(x => x.id === d.donaturId);
       const met = metodeDonasi.find(m => m.id === d.metodeDonasiId);
@@ -188,18 +194,17 @@ export function PenerimaanDonasi() {
       return [
         i + 1,
         formatTanggalDDMMYYYY(d.tanggal),
+        met?.nama || '-',
         don?.nama || '-',
         formatRupiah(d.nominal),
-        met?.nama || '-',
         pet?.name || '-'
       ];
     });
     
     // Add total row
     data.push([
-      { content: 'TOTAL', colSpan: 3, styles: { halign: 'center', fontStyle: 'bold' } }, 
-      { content: formatRupiah(totalFiltered), styles: { fontStyle: 'bold' } }, 
-      '', 
+      { content: 'TOTAL', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, 
+      { content: formatRupiah(totalFiltered), styles: { fontStyle: 'bold', halign: 'right' } }, 
       ''
     ]);
     
@@ -225,7 +230,7 @@ export function PenerimaanDonasi() {
         lineWidth: 0.1 
       },
       columnStyles: {
-        3: { halign: 'right' }
+        4: { halign: 'right' }
       },
       didDrawPage: function (data) {
         if (data.pageNumber === 1) {
@@ -344,6 +349,17 @@ export function PenerimaanDonasi() {
               ))}
             </select>
           </div>
+          {!isPetugas && (
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label text-sm text-secondary">Petugas</label>
+              <select className="form-select" value={filterPetugas} onChange={(e) => setFilterPetugas(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px' }}>
+                <option value="semua">Semua Petugas</option>
+                {petugasList.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>
           <div style={{ position: 'relative' }}>
@@ -367,9 +383,9 @@ export function PenerimaanDonasi() {
             <tr>
               <th>No</th>
               <th>Tanggal</th>
+              <th>Sumber Dana</th>
               <th>Nama Donatur</th>
               <th className="text-right">Nominal</th>
-              <th>Sumber Dana</th>
               <th>Petugas</th>
             </tr>
           </thead>
@@ -389,11 +405,11 @@ export function PenerimaanDonasi() {
                   <tr key={d.id}>
                     <td data-label="No">{idx + 1}</td>
                     <td data-label="Tanggal">{formatTanggalDDMMYYYY(d.tanggal)}</td>
-                    <td data-label="Donatur" className="font-semibold">{don?.nama || '-'}</td>
-                    <td data-label="Nominal" className="font-semibold text-primary-color text-right">{formatRupiah(d.nominal)}</td>
                     <td data-label="Sumber Dana">
                       <span className="badge badge-primary">{met?.nama || '-'}</span>
                     </td>
+                    <td data-label="Donatur" className="font-semibold">{don?.nama || '-'}</td>
+                    <td data-label="Nominal" className="font-semibold text-primary-color text-right">{formatRupiah(d.nominal)}</td>
                     <td data-label="Petugas">{pet?.name || '-'}</td>
                   </tr>
                 );
@@ -403,9 +419,9 @@ export function PenerimaanDonasi() {
           {filtered.length > 0 && (
             <tfoot>
               <tr>
-                <td colSpan={3} className="font-bold text-right">Total</td>
-                <td className="font-bold text-primary-color">{formatRupiah(totalFiltered)}</td>
-                <td colSpan={2}></td>
+                <td colSpan={4} className="font-bold text-right">Total</td>
+                <td className="font-bold text-primary-color text-right">{formatRupiah(totalFiltered)}</td>
+                <td></td>
               </tr>
             </tfoot>
           )}
