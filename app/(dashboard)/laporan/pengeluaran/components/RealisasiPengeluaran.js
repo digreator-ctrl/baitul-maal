@@ -121,7 +121,13 @@ export function RealisasiPengeluaran() {
 
   const getExportFileName = () => {
     const periodeStr = getSelectedPeriodLabel();
-    return `Realisasi Penyaluran - ${periodeStr}`;
+    
+    let posStr = 'Semua Pos';
+    if (filterPos !== 'semua') {
+      posStr = posPengeluaran.find(p => p.id === filterPos)?.nama || 'Semua Pos';
+    }
+    
+    return `Realisasi Penyaluran - ${periodeStr} - ${posStr}`;
   };
 
   const handleExport = () => {
