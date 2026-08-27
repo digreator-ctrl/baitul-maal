@@ -162,7 +162,13 @@ export function RealisasiPengeluaran() {
     
     const periodeStr = getSelectedPeriodLabel().toUpperCase();
     
-    const headers = [['NO', 'TANGGAL', 'POS PENGELUARAN', 'SUMBER DANA', 'KETERANGAN', 'NOMINAL', 'BENDAHARA']];
+    let posStr = 'Semua Pos';
+    if (filterPos !== 'semua') {
+      posStr = posPengeluaran.find(p => p.id === filterPos)?.nama || 'Semua Pos';
+    }
+    const posPengeluaranStr = posStr.toUpperCase();
+    
+    const headers = [['NO', 'TANGGAL', 'POS\nPENGELUARAN', 'SUMBER\nDANA', 'KETERANGAN', 'NOMINAL', 'BENDAHARA']];
     const data = filtered.map((row, i) => {
       const met = metodeDonasi.find(m => m.id === row.sumberDanaId);
       const pos = posPengeluaran.find(x => x.id === row.posPengeluaranId);
@@ -180,7 +186,8 @@ export function RealisasiPengeluaran() {
     
     // Add total row
     data.push([
-      { content: 'TOTAL', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } }, 
+      { content: 'TOTAL', colSpan: 4, styles: { halign: 'center', fontStyle: 'bold' } }, 
+      '',
       { content: formatRupiah(totalFiltered), styles: { fontStyle: 'bold', halign: 'right' } },
       ''
     ]);
@@ -200,6 +207,7 @@ export function RealisasiPengeluaran() {
         lineWidth: 0.1, 
         fontStyle: 'bold', 
         halign: 'center',
+        valign: 'middle',
         fontSize: 8
       },
       bodyStyles: { 
@@ -233,15 +241,17 @@ export function RealisasiPengeluaran() {
           doc.setFont('helvetica', 'bold');
           doc.text('LAPORAN REALISASI PENYALURAN', pageWidth / 2, 40, { align: 'center' });
           doc.text(`PERIODE: ${periodeStr}`, pageWidth / 2, 46, { align: 'center' });
+          doc.text(`POS PENGELUARAN: ${posPengeluaranStr}`, pageWidth / 2, 52, { align: 'center' });
         } else {
           // Header subsequent pages
           doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
+          doc.setFont('helvetica', 'bolditalic');
           doc.setTextColor(150, 150, 150);
           doc.text(`PERIODE: ${periodeStr}`, 14, 15);
+          doc.text(`POS PENGELUARAN: ${posPengeluaranStr}`, 14, 20);
           doc.setLineWidth(0.5);
           doc.setDrawColor(150, 150, 150);
-          doc.line(14, 18, pageWidth - 14, 18);
+          doc.line(14, 23, pageWidth - 14, 23);
           
           doc.setTextColor(0, 0, 0);
           doc.setDrawColor(0, 0, 0);
