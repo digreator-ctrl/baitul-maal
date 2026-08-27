@@ -5,15 +5,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { formatRupiah, formatTanggalDDMMYYYY } from '@/lib/mock';
 import { hasPermission } from '@/lib/rbac';
-import { Filter, HandCoins, Calendar, Search, Download, Printer } from 'lucide-react';
+import { Filter, HandCoins, Calendar, Search, Download, Printer, X, ChevronRight } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export function PenerimaanDonasi() {
   const { user } = useAuth();
   const { donasi, donatur, kategoriDonasi, metodeDonasi, users } = useData();
-  const [filterBulan, setFilterBulan] = useState('semua');
-  const [filterTahun, setFilterTahun] = useState('semua');
+  const [dateFilterMode, setDateFilterMode] = useState('semua');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [tempDateFilterMode, setTempDateFilterMode] = useState('semua');
+  const [tempStartDate, setTempStartDate] = useState('');
+  const [tempEndDate, setTempEndDate] = useState('');
   const [filterSumber, setFilterSumber] = useState('semua');
   const [search, setSearch] = useState('');
 
@@ -23,20 +28,76 @@ export function PenerimaanDonasi() {
 
   const isPetugas = user?.role === 'petugas';
 
-  // Get available years from data
-  const availableYears = useMemo(() => {
-    const years = new Set(donasi.map(d => new Date(d.tanggal).getFullYear()));
-    return [...years].sort((a, b) => b - a);
-  }, [donasi]);
+  const openFilterModal = () => {
+    setTempDateFilterMode(dateFilterMode);
+    setTempStartDate(startDate);
+    setTempEndDate(endDate);
+    setShowFilterModal(true);
+  };
 
-  const bulanOptions = [
-    { value: '0', label: 'Januari' }, { value: '1', label: 'Februari' },
-    { value: '2', label: 'Maret' }, { value: '3', label: 'April' },
-    { value: '4', label: 'Mei' }, { value: '5', label: 'Juni' },
-    { value: '6', label: 'Juli' }, { value: '7', label: 'Agustus' },
-    { value: '8', label: 'September' }, { value: '9', label: 'Oktober' },
-    { value: '10', label: 'November' }, { value: '11', label: 'Desember' },
-  ];
+  const applyDateFilter = () => {
+    setDateFilterMode(tempDateFilterMode);
+    setStartDate(tempStartDate);
+    setEndDate(tempEndDate);
+    setShowFilterModal(false);
+  };
+
+  const getSelectedPeriodLabel = () => {
+    if (dateFilterMode === 'semua') return 'Semua Waktu';
+    if (dateFilterMode === 'hari_ini') return 'Hari Ini';
+    if (dateFilterMode === 'kemarin') return 'Kemarin';
+    if (dateFilterMode === '7_hari') return '7 Hari Terakhir';
+    if (dateFilterMode === '30_hari') return '30 Hari Terakhir';
+    if (dateFilterMode === 'custom') {
+      if (startDate && endDate) return `${formatTanggalDDMMYYYY(startDate)} s.d ${formatTanggalDDMMYYYY(endDate)}`;
+      if (startDate) return `Mulai ${formatTanggalDDMMYYYY(startDate)}`;
+      if (endDate) return `Sampai ${formatTanggalDDMMYYYY(endDate)}`;
+      return 'Tanggal Custom';
+    }
+    return 'Semua Waktu';
+  };
+
+  const { filterStart, filterEnd } = useMemo(() => {
+    if (dateFilterMode === 'semua') return { filterStart: null, filterEnd: null };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (dateFilterMode === 'hari_ini') {
+      return { filterStart: today, filterEnd: tomorrow };
+    } else if (dateFilterMode === 'kemarin') {
+      const kemarin = new Date(today);
+      kemarin.setDate(kemarin.getDate() - 1);
+      return { filterStart: kemarin, filterEnd: today };
+    } else if (dateFilterMode === '7_hari') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 6);
+      return { filterStart: start, filterEnd: tomorrow };
+    } else if (dateFilterMode === '30_hari') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 29);
+      return { filterStart: start, filterEnd: tomorrow };
+    } else if (dateFilterMode === 'custom') {
+      let start = startDate ? new Date(startDate) : null;
+      if (start) start.setHours(0, 0, 0, 0);
+      let end = endDate ? new Date(endDate) : null;
+      if (end) {
+        end.setHours(0, 0, 0, 0);
+        end.setDate(end.getDate() + 1);
+      }
+      return { filterStart: start, filterEnd: end };
+    }
+    return { filterStart: null, filterEnd: null };
+  }, [dateFilterMode, startDate, endDate]);
+
+  const checkDateInRange = (dateString, start, end) => {
+    if (!start && !end) return true;
+    const d = new Date(dateString);
+    if (start && d < start) return false;
+    if (end && d >= end) return false;
+    return true;
+  };
 
   const filtered = useMemo(() => {
     return donasi
@@ -45,9 +106,7 @@ export function PenerimaanDonasi() {
         // Petugas only sees own data
         if (isPetugas && d.petugasId !== user?.id) return false;
         // Period filter
-        const date = new Date(d.tanggal);
-        if (filterTahun !== 'semua' && date.getFullYear().toString() !== filterTahun) return false;
-        if (filterBulan !== 'semua' && date.getMonth().toString() !== filterBulan) return false;
+        if (!checkDateInRange(d.tanggal, filterStart, filterEnd)) return false;
         // Sumber dana filter
         if (filterSumber !== 'semua' && d.metodeDonasiId !== filterSumber) return false;
         // Search
@@ -58,23 +117,11 @@ export function PenerimaanDonasi() {
         return true;
       })
       .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-  }, [donasi, donatur, isPetugas, user, filterTahun, filterBulan, filterSumber, search]);
+  }, [donasi, donatur, isPetugas, user, filterStart, filterEnd, filterSumber, search]);
 
   const totalFiltered = filtered.reduce((sum, d) => sum + d.nominal, 0);
 
-  const getPeriodeString = () => {
-    let periodeStr = 'Semua Periode';
-    if (filterBulan !== 'semua' && filterTahun !== 'semua') {
-      const bulanLabel = bulanOptions.find(b => b.value === filterBulan)?.label;
-      periodeStr = `${bulanLabel} ${filterTahun}`;
-    } else if (filterTahun !== 'semua') {
-      periodeStr = `Tahun ${filterTahun}`;
-    } else if (filterBulan !== 'semua') {
-      const bulanLabel = bulanOptions.find(b => b.value === filterBulan)?.label;
-      periodeStr = `Bulan ${bulanLabel}`;
-    }
-    return periodeStr.toUpperCase();
-  };
+  const getPeriodeString = () => getSelectedPeriodLabel().toUpperCase();
 
   const getSumberDanaString = () => {
     if (filterSumber === 'semua') return 'SEMUA SUMBER DANA';
@@ -83,16 +130,7 @@ export function PenerimaanDonasi() {
   };
 
   const getExportFileName = () => {
-    let periodeStr = 'Semua Periode';
-    if (filterBulan !== 'semua' && filterTahun !== 'semua') {
-      const bulanLabel = bulanOptions.find(b => b.value === filterBulan)?.label;
-      periodeStr = `${filterTahun} ${bulanLabel}`;
-    } else if (filterTahun !== 'semua') {
-      periodeStr = `${filterTahun}`;
-    } else if (filterBulan !== 'semua') {
-      const bulanLabel = bulanOptions.find(b => b.value === filterBulan)?.label;
-      periodeStr = `${bulanLabel}`;
-    }
+    const periodeStr = getSelectedPeriodLabel();
     
     let sumberStr = 'Semua Sumber Dana';
     if (filterSumber !== 'semua') {
@@ -282,25 +320,24 @@ export function PenerimaanDonasi() {
           <Filter size={16} color="var(--text-secondary)" />
           <span className="text-sm font-semibold text-secondary">Filter</span>
         </div>
-        <div className="form-row-3">
-          <div className="form-group" style={{ marginBottom: 'var(--space-sm)' }}>
-            <select className="form-select" value={filterTahun} onChange={(e) => setFilterTahun(e.target.value)}>
-              <option value="semua">Semua Tahun</option>
-              {availableYears.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+        <div className="grid gap-md mb-md" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label text-sm text-secondary">Periode Waktu</label>
+            <div 
+              className="form-input flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors" 
+              onClick={openFilterModal}
+              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '10px 14px' }}
+            >
+              <div className="flex items-center gap-sm">
+                <Calendar size={16} color="var(--text-tertiary)" />
+                <span style={{ fontSize: '14px', fontWeight: '500' }}>{getSelectedPeriodLabel()}</span>
+              </div>
+              <ChevronRight size={16} color="var(--text-tertiary)" />
+            </div>
           </div>
-          <div className="form-group" style={{ marginBottom: 'var(--space-sm)' }}>
-            <select className="form-select" value={filterBulan} onChange={(e) => setFilterBulan(e.target.value)}>
-              <option value="semua">Semua Bulan</option>
-              {bulanOptions.map(b => (
-                <option key={b.value} value={b.value}>{b.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group" style={{ marginBottom: 'var(--space-sm)' }}>
-            <select className="form-select" value={filterSumber} onChange={(e) => setFilterSumber(e.target.value)}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label text-sm text-secondary">Sumber Dana</label>
+            <select className="form-select" value={filterSumber} onChange={(e) => setFilterSumber(e.target.value)} style={{ padding: '10px 14px', borderRadius: '8px' }}>
               <option value="semua">Semua Sumber Dana</option>
               {metodeDonasi.filter(m => m.aktif).map(m => (
                 <option key={m.id} value={m.id}>{m.nama}</option>
@@ -374,6 +411,78 @@ export function PenerimaanDonasi() {
           )}
         </table>
       </div>
+      {/* Modal Filter Periode */}
+      {showFilterModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px', backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card animate-fade-in-up" style={{ width: '100%', maxWidth: '420px', backgroundColor: 'var(--bg-primary)', padding: '24px', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+            <div className="flex justify-between items-center mb-lg">
+              <h3 className="font-bold text-lg" style={{ color: 'var(--text)' }}>Pilih Periode</h3>
+              <button 
+                onClick={() => setShowFilterModal(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+                title="Tutup"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="mb-lg">
+              <label className="form-label text-sm mb-sm block" style={{ color: 'var(--text-secondary)' }}>PILIHAN CEPAT</label>
+              <div className="grid gap-sm" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                {['semua', 'hari_ini', 'kemarin', '7_hari', '30_hari', 'custom'].map(mode => {
+                  const labels = {
+                    'semua': 'Semua Waktu',
+                    'hari_ini': 'Hari Ini',
+                    'kemarin': 'Kemarin',
+                    '7_hari': '7 Hari Terakhir',
+                    '30_hari': '30 Hari Terakhir',
+                    'custom': 'Custom Range'
+                  };
+                  return (
+                    <button 
+                      key={mode}
+                      className={`btn ${tempDateFilterMode === mode ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ 
+                        padding: '10px 8px', 
+                        fontSize: '13.5px', 
+                        justifyContent: 'center',
+                        fontWeight: tempDateFilterMode === mode ? '600' : '400',
+                        opacity: tempDateFilterMode === mode ? 1 : 0.85
+                      }}
+                      onClick={() => setTempDateFilterMode(mode)}
+                    >
+                      {labels[mode]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {tempDateFilterMode === 'custom' && (
+              <div className="p-md mb-lg animate-fade-in-up" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <div className="form-group mb-sm">
+                  <label className="form-label text-sm" style={{ color: 'var(--text-secondary)' }}>Dari Tanggal</label>
+                  <input type="date" className="form-input" value={tempStartDate} onChange={e => setTempStartDate(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label text-sm" style={{ color: 'var(--text-secondary)' }}>Sampai Tanggal</label>
+                  <input type="date" className="form-input" value={tempEndDate} onChange={e => setTempEndDate(e.target.value)} />
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-sm pt-sm" style={{ borderTop: '1px solid var(--border-color)', marginTop: '24px', paddingTop: '16px' }}>
+              <button className="btn btn-secondary flex-1" onClick={() => setShowFilterModal(false)} style={{ justifyContent: 'center', padding: '12px' }}>Batal</button>
+              <button className="btn btn-primary flex-1" onClick={applyDateFilter} style={{ justifyContent: 'center', padding: '12px' }}>Terapkan</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

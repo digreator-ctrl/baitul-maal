@@ -3,9 +3,9 @@
 import { useMemo, useState, Fragment } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggalDDMMYYYY, getStatusBadge } from '@/lib/mock';
 import { hasPermission } from '@/lib/rbac';
-import { AlertTriangle, Clock, Download, Printer } from 'lucide-react';
+import { AlertTriangle, Clock, Download, Printer, Filter, Calendar, X, ChevronRight } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -13,7 +13,43 @@ export function MutasiSetoran() {
   const { user } = useAuth();
   const { donasi, setoran, users } = useData();
   const [filterPetugas, setFilterPetugas] = useState('semua');
+  const [dateFilterMode, setDateFilterMode] = useState('semua');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [tempDateFilterMode, setTempDateFilterMode] = useState('semua');
+  const [tempStartDate, setTempStartDate] = useState('');
+  const [tempEndDate, setTempEndDate] = useState('');
   const [expandedRow, setExpandedRow] = useState(null);
+
+  const openFilterModal = () => {
+    setTempDateFilterMode(dateFilterMode);
+    setTempStartDate(startDate);
+    setTempEndDate(endDate);
+    setShowFilterModal(true);
+  };
+
+  const applyDateFilter = () => {
+    setDateFilterMode(tempDateFilterMode);
+    setStartDate(tempStartDate);
+    setEndDate(tempEndDate);
+    setShowFilterModal(false);
+  };
+
+  const getSelectedPeriodLabel = () => {
+    if (dateFilterMode === 'semua') return 'Semua Waktu';
+    if (dateFilterMode === 'hari_ini') return 'Hari Ini';
+    if (dateFilterMode === 'kemarin') return 'Kemarin';
+    if (dateFilterMode === '7_hari') return '7 Hari Terakhir';
+    if (dateFilterMode === '30_hari') return '30 Hari Terakhir';
+    if (dateFilterMode === 'custom') {
+      if (startDate && endDate) return `${formatTanggalDDMMYYYY(startDate)} s.d ${formatTanggalDDMMYYYY(endDate)}`;
+      if (startDate) return `Mulai ${formatTanggalDDMMYYYY(startDate)}`;
+      if (endDate) return `Sampai ${formatTanggalDDMMYYYY(endDate)}`;
+      return 'Tanggal Custom';
+    }
+    return 'Semua Waktu';
+  };
 
   const toggleRow = (id) => {
     if (expandedRow === id) {
@@ -34,6 +70,48 @@ export function MutasiSetoran() {
     return users.filter(u => u.roles?.includes('petugas'));
   }, [users]);
 
+  const { filterStart, filterEnd } = useMemo(() => {
+    if (dateFilterMode === 'semua') return { filterStart: null, filterEnd: null };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (dateFilterMode === 'hari_ini') {
+      return { filterStart: today, filterEnd: tomorrow };
+    } else if (dateFilterMode === 'kemarin') {
+      const kemarin = new Date(today);
+      kemarin.setDate(kemarin.getDate() - 1);
+      return { filterStart: kemarin, filterEnd: today };
+    } else if (dateFilterMode === '7_hari') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 6);
+      return { filterStart: start, filterEnd: tomorrow };
+    } else if (dateFilterMode === '30_hari') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 29);
+      return { filterStart: start, filterEnd: tomorrow };
+    } else if (dateFilterMode === 'custom') {
+      let start = startDate ? new Date(startDate) : null;
+      if (start) start.setHours(0, 0, 0, 0);
+      let end = endDate ? new Date(endDate) : null;
+      if (end) {
+        end.setHours(0, 0, 0, 0);
+        end.setDate(end.getDate() + 1);
+      }
+      return { filterStart: start, filterEnd: end };
+    }
+    return { filterStart: null, filterEnd: null };
+  }, [dateFilterMode, startDate, endDate]);
+
+  const checkDateInRange = (dateString, start, end) => {
+    if (!start && !end) return true;
+    const d = new Date(dateString);
+    if (start && d < start) return false;
+    if (end && d >= end) return false;
+    return true;
+  };
+
   const summary = useMemo(() => {
     let targetPetugas = petugasList;
     if (isPetugas) {
@@ -44,11 +122,15 @@ export function MutasiSetoran() {
 
     return targetPetugas.map(petugas => {
       // Total tagihan (all donasi collected by this petugas)
-      const donasiPetugas = donasi.filter(d => d.petugasId === petugas.id);
+      const donasiPetugas = donasi
+        .filter(d => d.petugasId === petugas.id)
+        .filter(d => checkDateInRange(d.tanggal, filterStart, filterEnd));
       const totalTagihan = donasiPetugas.reduce((sum, d) => sum + d.nominal, 0);
 
       // Setoran by this petugas
-      const setoranPetugas = setoran.filter(s => s.petugasId === petugas.id);
+      const setoranPetugas = setoran
+        .filter(s => s.petugasId === petugas.id)
+        .filter(s => checkDateInRange(s.tanggal, filterStart, filterEnd));
       
       const totalDisetor = setoranPetugas
         .filter(s => s.status === 'terverifikasi')
@@ -75,7 +157,7 @@ export function MutasiSetoran() {
         jumlahDonasi: donasiPetugas.length,
       };
     });
-  }, [petugasList, donasi, setoran, isPetugas, user, filterPetugas]);
+  }, [petugasList, donasi, setoran, isPetugas, user, filterPetugas, filterStart, filterEnd]);
 
   const grandTotal = {
     tagihan: summary.reduce((s, r) => s + r.totalTagihan, 0),
@@ -83,6 +165,30 @@ export function MutasiSetoran() {
     pending: summary.reduce((s, r) => s + r.totalPending, 0),
     mengendap: summary.reduce((s, r) => s + r.sisaMengendap, 0),
   };
+
+  const allSetoran = useMemo(() => {
+    let targetPetugas = petugasList;
+    if (isPetugas) {
+      targetPetugas = petugasList.filter(p => p.id === user?.id);
+    } else if (filterPetugas !== 'semua') {
+      targetPetugas = petugasList.filter(p => p.id === filterPetugas);
+    }
+    const petugasIds = targetPetugas.map(p => p.id);
+    
+    return setoran
+      .filter(s => petugasIds.includes(s.petugasId))
+      .filter(s => checkDateInRange(s.tanggal, filterStart, filterEnd))
+      .map(s => {
+        const p = targetPetugas.find(pt => pt.id === s.petugasId);
+        const b = users.find(u => u.id === s.verifikasiOleh);
+        return { 
+          ...s, 
+          petugasName: p?.name || 'Unknown',
+          bendaharaName: b?.name || '-'
+        };
+      })
+      .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+  }, [setoran, petugasList, isPetugas, user, filterPetugas, filterStart, filterEnd, users]);
 
   const getExportFileName = () => {
     let petugasStr = 'Semua Petugas';
@@ -93,22 +199,25 @@ export function MutasiSetoran() {
   };
 
   const handleExport = () => {
-    const headers = ['No', 'Nama Petugas', 'Total Tagihan', 'Disetor (Terverifikasi)', 'Menunggu Verifikasi', 'Ditolak', 'Sisa Mengendap'];
-    const csvData = summary.map((row, i) => {
+    const headers = ['No', 'Tanggal', 'Nama Petugas', 'Nominal Setoran', 'Bendahara', 'Status'];
+    const csvData = allSetoran.map((row, i) => {
+      const status = getStatusBadge(row.status).label;
       return [
         i + 1,
-        `"${row.petugas.name}"`,
-        row.totalTagihan,
-        row.totalDisetor,
-        row.totalPending,
-        row.totalDitolak,
-        row.sisaMengendap
+        formatTanggalDDMMYYYY(row.tanggal),
+        `"${row.petugasName}"`,
+        row.totalNominal,
+        `"${row.bendaharaName}"`,
+        `"${status}"`
       ].join(',');
     });
     
-    // Add total row
-    const totalDitolakAll = summary.reduce((s, r) => s + r.totalDitolak, 0);
-    csvData.push(`"","Total",${grandTotal.tagihan},${grandTotal.disetor},${grandTotal.pending},${totalDitolakAll},${grandTotal.mengendap}`);
+    // Add total rows
+    csvData.push(`"","Ringkasan Akumulasi:"`);
+    csvData.push(`"","Total Tagihan:",${grandTotal.tagihan},"","",""`);
+    csvData.push(`"","Total Terverifikasi:",${grandTotal.disetor},"","",""`);
+    csvData.push(`"","Total Pending:",${grandTotal.pending},"","",""`);
+    csvData.push(`"","Sisa Mengendap:",${grandTotal.mengendap},"","",""`);
     
     const csvContent = [headers.join(','), ...csvData].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -131,28 +240,47 @@ export function MutasiSetoran() {
       petugasStr = petugasList.find(p => p.id === filterPetugas)?.name || 'Semua Petugas';
     }
     
-    const headers = [['NO', 'NAMA PETUGAS', 'TOTAL TAGIHAN', 'DISETOR', 'PENDING', 'DITOLAK', 'MENGENDAP']];
-    const data = summary.map((row, i) => {
+    const headers = [[
+      'NO', 
+      'TANGGAL', 
+      'NAMA PETUGAS', 
+      'NOMINAL SETORAN', 
+      { content: 'NAMA BENDAHARA', colSpan: 2, styles: { halign: 'center' } }, 
+      'STATUS'
+    ]];
+    const data = allSetoran.map((row, i) => {
+      const status = getStatusBadge(row.status).label;
       return [
         i + 1,
-        row.petugas.name,
-        formatRupiah(row.totalTagihan),
-        formatRupiah(row.totalDisetor),
-        formatRupiah(row.totalPending),
-        formatRupiah(row.totalDitolak),
-        formatRupiah(row.sisaMengendap)
+        formatTanggalDDMMYYYY(row.tanggal),
+        row.petugasName,
+        formatRupiah(row.totalNominal),
+        { content: row.bendaharaName, colSpan: 2, styles: { halign: 'left' } },
+        status
       ];
     });
     
-    // Add total row
-    const totalDitolakAll = summary.reduce((s, r) => s + r.totalDitolak, 0);
+    // Add total rows
     data.push([
-      { content: 'TOTAL', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold' } }, 
-      { content: formatRupiah(grandTotal.tagihan), styles: { fontStyle: 'bold' } }, 
-      { content: formatRupiah(grandTotal.disetor), styles: { fontStyle: 'bold' } }, 
-      { content: formatRupiah(grandTotal.pending), styles: { fontStyle: 'bold' } }, 
-      { content: formatRupiah(totalDitolakAll), styles: { fontStyle: 'bold' } }, 
-      { content: formatRupiah(grandTotal.mengendap), styles: { fontStyle: 'bold' } }
+      { content: 'Ringkasan Akumulasi', colSpan: 3, rowSpan: 4, styles: { halign: 'right', valign: 'top', fontStyle: 'bold' } }, 
+      { content: 'Total Tagihan', styles: { halign: 'left', fontStyle: 'bold' } }, 
+      { content: ':', styles: { halign: 'center', fontStyle: 'bold' } }, 
+      { content: formatRupiah(grandTotal.tagihan), colSpan: 2, styles: { fontStyle: 'bold', halign: 'left' } }
+    ]);
+    data.push([
+      { content: 'Terverifikasi', styles: { halign: 'left', fontStyle: 'bold' } }, 
+      { content: ':', styles: { halign: 'center', fontStyle: 'bold' } }, 
+      { content: formatRupiah(grandTotal.disetor), colSpan: 2, styles: { fontStyle: 'bold', halign: 'left' } }
+    ]);
+    data.push([
+      { content: 'Pending', styles: { halign: 'left', fontStyle: 'bold' } }, 
+      { content: ':', styles: { halign: 'center', fontStyle: 'bold' } }, 
+      { content: formatRupiah(grandTotal.pending), colSpan: 2, styles: { fontStyle: 'bold', halign: 'left' } }
+    ]);
+    data.push([
+      { content: 'Sisa Mengendap', styles: { halign: 'left', fontStyle: 'bold' } }, 
+      { content: ':', styles: { halign: 'center', fontStyle: 'bold' } }, 
+      { content: formatRupiah(grandTotal.mengendap), colSpan: 2, styles: { fontStyle: 'bold', halign: 'left' } }
     ]);
     
     const totalPagesExp = '{total_pages_count_string}';
@@ -179,11 +307,10 @@ export function MutasiSetoran() {
         fontSize: 8
       },
       columnStyles: {
-        2: { halign: 'right' },
         3: { halign: 'right' },
-        4: { halign: 'right' },
-        5: { halign: 'right' },
-        6: { halign: 'right' }
+        4: { halign: 'center', cellWidth: 6 },
+        5: { minCellWidth: 35 },
+        6: { halign: 'center' }
       },
       didDrawPage: function (data) {
         if (data.pageNumber === 1) {
@@ -206,16 +333,20 @@ export function MutasiSetoran() {
           doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
           doc.text('LAPORAN MUTASI SETORAN', pageWidth / 2, 40, { align: 'center' });
-          doc.text(`PETUGAS: ${petugasStr.toUpperCase()}`, pageWidth / 2, 46, { align: 'center' });
+          const periodeStr = getSelectedPeriodLabel().toUpperCase();
+          doc.text(`PERIODE: ${periodeStr}`, pageWidth / 2, 45, { align: 'center' });
+          doc.text(`PETUGAS: ${petugasStr.toUpperCase()}`, pageWidth / 2, 50, { align: 'center' });
         } else {
           // Header subsequent pages
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(150, 150, 150);
-          doc.text(`PETUGAS: ${petugasStr.toUpperCase()}`, 14, 15);
+          const periodeStr = getSelectedPeriodLabel().toUpperCase();
+          doc.text(`PERIODE: ${periodeStr}`, 14, 15);
+          doc.text(`PETUGAS: ${petugasStr.toUpperCase()}`, 14, 20);
           doc.setLineWidth(0.5);
           doc.setDrawColor(150, 150, 150);
-          doc.line(14, 18, pageWidth - 14, 18);
+          doc.line(14, 23, pageWidth - 14, 23);
           
           doc.setTextColor(0, 0, 0);
           doc.setDrawColor(0, 0, 0);
@@ -260,20 +391,42 @@ export function MutasiSetoran() {
           <Download size={16} /> Export CSV
         </button>
       </div>
-      {/* Filter (non-petugas only) */}
-      {!isPetugas && (
-        <div className="card mb-lg" style={{ padding: 'var(--space-md)' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Filter Petugas</label>
-            <select className="form-select" value={filterPetugas} onChange={(e) => setFilterPetugas(e.target.value)}>
-              <option value="semua">Semua Petugas</option>
-              {petugasList.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
+      {/* Filters (Selalu Nampak) */}
+      <div className="card mb-lg" style={{ padding: 'var(--space-md)' }}>
+        <div className="flex items-center gap-sm mb-md">
+          <Filter size={16} color="var(--text-secondary)" />
+          <span className="font-semibold text-secondary">Filter Data</span>
         </div>
-      )}
+        
+        <div className="grid gap-md" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Periode Waktu</label>
+            <div 
+              className="form-input flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors" 
+              onClick={openFilterModal}
+              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '10px 14px' }}
+            >
+              <div className="flex items-center gap-sm">
+                <Calendar size={16} color="var(--text-tertiary)" />
+                <span style={{ fontSize: '14px', fontWeight: '500' }}>{getSelectedPeriodLabel()}</span>
+              </div>
+              <ChevronRight size={16} color="var(--text-tertiary)" />
+            </div>
+          </div>
+
+          {!isPetugas && (
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Petugas</label>
+              <select className="form-select" value={filterPetugas} onChange={(e) => setFilterPetugas(e.target.value)}>
+                <option value="semua">Semua Petugas</option>
+                {petugasList.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Grand Total Cards */}
       <div className="grid gap-md mb-lg" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
@@ -295,108 +448,152 @@ export function MutasiSetoran() {
         </div>
       </div>
 
-      {/* Table Per Petugas */}
+      {/* Table Detail Setoran */}
       <div className="table-container table-mobile">
         <table className="table">
           <thead>
             <tr>
               <th>No</th>
+              <th>Tanggal</th>
               <th>Nama Petugas</th>
-              <th className="text-right">Total Tagihan</th>
-              <th className="text-right">Disetor (Terverifikasi)</th>
-              <th className="text-right">Menunggu Verifikasi</th>
-              <th className="text-right">Sisa Mengendap</th>
-              <th className="text-center">Aksi</th>
+              <th className="text-right">Nominal Setoran</th>
+              <th>Nama Bendahara</th>
+              <th className="text-center">Status</th>
             </tr>
           </thead>
           <tbody>
-            {summary.length === 0 ? (
+            {allSetoran.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center text-secondary" style={{ padding: '32px' }}>
+                <td colSpan={6} className="text-center text-secondary" style={{ padding: '32px' }}>
                   <div className="empty-state" style={{ padding: 0 }}>
                     <Clock size={48} />
-                    <p>Tidak ada data petugas yang tersedia.</p>
+                    <p>Tidak ada data setoran yang tersedia.</p>
                   </div>
                 </td>
               </tr>
             ) : (
-              summary.map((row, idx) => (
-                <Fragment key={row.petugas.id}>
-                  <tr>
+              allSetoran.map((row, idx) => {
+                const status = getStatusBadge(row.status);
+                return (
+                  <tr key={row.id}>
                     <td data-label="No">{idx + 1}</td>
+                    <td data-label="Tanggal">{formatTanggalDDMMYYYY(row.tanggal)}</td>
                     <td data-label="Nama Petugas">
-                      <div className="flex items-center gap-sm">
-                        <div className="list-item-avatar" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', width: '32px', height: '32px', fontSize: '12px' }}>
-                          {row.petugas.avatar}
-                        </div>
-                        <div>
-                          <div className="font-semibold">{row.petugas.name}</div>
-                          <div className="text-xs text-secondary">{row.jumlahDonasi} donasi</div>
-                        </div>
-                      </div>
+                      <div className="font-semibold">{row.petugasName}</div>
                     </td>
-                    <td data-label="Total Tagihan" className="font-semibold text-right">{formatRupiah(row.totalTagihan)}</td>
-                    <td data-label="Disetor" className="font-semibold text-right" style={{ color: 'var(--success)' }}>{formatRupiah(row.totalDisetor)}</td>
-                    <td data-label="Pending" className="font-semibold text-right" style={{ color: 'var(--info)' }}>{formatRupiah(row.totalPending)}</td>
-                    <td data-label="Mengendap" className="font-semibold text-right" style={{ color: row.sisaMengendap > 0 ? 'var(--warning)' : 'var(--text-secondary)' }}>
-                      <div className="flex items-center justify-end gap-xs">
-                        {row.sisaMengendap > 0 && <AlertTriangle size={14} color="var(--warning)" />}
-                        {formatRupiah(row.sisaMengendap)}
-                      </div>
-                    </td>
-                    <td data-label="Aksi" className="text-center">
-                      <button 
-                        className="btn btn-secondary btn-sm" 
-                        onClick={() => toggleRow(row.petugas.id)}
-                        disabled={row.setoranDetail.length === 0}
-                      >
-                        {expandedRow === row.petugas.id ? 'Tutup' : 'Detail'}
-                      </button>
+                    <td data-label="Nominal Setoran" className="font-semibold text-right">{formatRupiah(row.totalNominal)}</td>
+                    <td data-label="Bendahara">{row.bendaharaName}</td>
+                    <td data-label="Status" className="text-center">
+                      <span className={`badge badge-${status.variant}`}>{status.label}</span>
                     </td>
                   </tr>
-                  {/* Expanded Row */}
-                  {expandedRow === row.petugas.id && row.setoranDetail.length > 0 && (
-                    <tr style={{ background: 'var(--bg-secondary)' }}>
-                      <td colSpan={7} style={{ padding: '16px' }}>
-                        <div className="text-sm font-semibold text-secondary mb-sm">Detail Setoran - {row.petugas.name}</div>
-                        <div className="grid gap-sm" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
-                          {row.setoranDetail.map(s => {
-                            const status = getStatusBadge(s.status);
-                            return (
-                              <div key={s.id} className="card p-sm flex justify-between items-center" style={{ background: 'var(--bg-primary)' }}>
-                                <div>
-                                  <div className="font-semibold text-sm">{s.keterangan || 'Setoran'}</div>
-                                  <div className="text-xs text-secondary">{formatTanggalShort(s.tanggal)}</div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="font-bold text-sm">{formatRupiah(s.totalNominal)}</div>
-                                  <span className={`badge badge-${status.variant}`} style={{ fontSize: '0.7rem' }}>{status.label}</span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))
+                );
+              })
             )}
           </tbody>
-          {summary.length > 0 && (
+          {allSetoran.length > 0 && (
             <tfoot>
               <tr>
-                <td colSpan={2} className="font-bold text-right">Total</td>
-                <td className="font-bold text-right">{formatRupiah(grandTotal.tagihan)}</td>
-                <td className="font-bold text-right" style={{ color: 'var(--success)' }}>{formatRupiah(grandTotal.disetor)}</td>
-                <td className="font-bold text-right" style={{ color: 'var(--info)' }}>{formatRupiah(grandTotal.pending)}</td>
-                <td className="font-bold text-right" style={{ color: grandTotal.mengendap > 0 ? 'var(--warning)' : 'inherit' }}>{formatRupiah(grandTotal.mengendap)}</td>
-                <td></td>
+                <td colSpan={3} className="font-bold text-right" style={{ verticalAlign: 'top', paddingTop: '12px' }}>
+                  Ringkasan Akumulasi<br/>(Semua Petugas Sesuai Filter)
+                </td>
+                <td colSpan={3}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span className="font-bold">Total Tagihan:</span>
+                      <span className="font-bold">{formatRupiah(grandTotal.tagihan)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--success)' }}>
+                      <span className="font-bold">Terverifikasi:</span>
+                      <span className="font-bold">{formatRupiah(grandTotal.disetor)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--info)' }}>
+                      <span className="font-bold">Pending:</span>
+                      <span className="font-bold">{formatRupiah(grandTotal.pending)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: grandTotal.mengendap > 0 ? 'var(--warning)' : 'inherit' }}>
+                      <span className="font-bold">Sisa Mengendap:</span>
+                      <span className="font-bold">{formatRupiah(grandTotal.mengendap)}</span>
+                    </div>
+                  </div>
+                </td>
               </tr>
             </tfoot>
           )}
         </table>
       </div>
+      {/* Modal Filter Periode */}
+      {showFilterModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px', backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card animate-fade-in-up" style={{ width: '100%', maxWidth: '420px', backgroundColor: 'var(--bg-primary)', padding: '24px', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+            <div className="flex justify-between items-center mb-lg">
+              <h3 className="font-bold text-lg" style={{ color: 'var(--text)' }}>Pilih Periode</h3>
+              <button 
+                onClick={() => setShowFilterModal(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+                title="Tutup"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="mb-lg">
+              <label className="form-label text-sm mb-sm block" style={{ color: 'var(--text-secondary)' }}>PILIHAN CEPAT</label>
+              <div className="grid gap-sm" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                {['semua', 'hari_ini', 'kemarin', '7_hari', '30_hari', 'custom'].map(mode => {
+                  const labels = {
+                    'semua': 'Semua Waktu',
+                    'hari_ini': 'Hari Ini',
+                    'kemarin': 'Kemarin',
+                    '7_hari': '7 Hari Terakhir',
+                    '30_hari': '30 Hari Terakhir',
+                    'custom': 'Custom Range'
+                  };
+                  return (
+                    <button 
+                      key={mode}
+                      className={`btn ${tempDateFilterMode === mode ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ 
+                        padding: '10px 8px', 
+                        fontSize: '13.5px', 
+                        justifyContent: 'center',
+                        fontWeight: tempDateFilterMode === mode ? '600' : '400',
+                        opacity: tempDateFilterMode === mode ? 1 : 0.85
+                      }}
+                      onClick={() => setTempDateFilterMode(mode)}
+                    >
+                      {labels[mode]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {tempDateFilterMode === 'custom' && (
+              <div className="p-md mb-lg animate-fade-in-up" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                <div className="form-group mb-sm">
+                  <label className="form-label text-sm" style={{ color: 'var(--text-secondary)' }}>Dari Tanggal</label>
+                  <input type="date" className="form-input" value={tempStartDate} onChange={e => setTempStartDate(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label text-sm" style={{ color: 'var(--text-secondary)' }}>Sampai Tanggal</label>
+                  <input type="date" className="form-input" value={tempEndDate} onChange={e => setTempEndDate(e.target.value)} />
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-sm pt-sm" style={{ borderTop: '1px solid var(--border-color)', marginTop: '24px', paddingTop: '16px' }}>
+              <button className="btn btn-secondary flex-1" onClick={() => setShowFilterModal(false)} style={{ justifyContent: 'center', padding: '12px' }}>Batal</button>
+              <button className="btn btn-primary flex-1" onClick={applyDateFilter} style={{ justifyContent: 'center', padding: '12px' }}>Terapkan</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
