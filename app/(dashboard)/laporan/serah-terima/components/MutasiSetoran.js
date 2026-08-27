@@ -195,7 +195,8 @@ export function MutasiSetoran() {
     if (filterPetugas !== 'semua') {
       petugasStr = petugasList.find(p => p.id === filterPetugas)?.name || 'Semua Petugas';
     }
-    return `Laporan Mutasi Setoran - ${petugasStr}`;
+    const periodeStr = getSelectedPeriodLabel();
+    return `Mutasi Setoran - ${periodeStr} - ${petugasStr}`;
   };
 
   const handleExport = () => {
