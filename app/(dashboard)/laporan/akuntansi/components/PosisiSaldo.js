@@ -3,9 +3,11 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah } from '@/lib/mock';
+import { formatRupiah, formatTanggalDDMMYYYY } from '@/lib/mock';
 import { hasPermission } from '@/lib/rbac';
-import { Wallet, Users, Landmark, AlertTriangle } from 'lucide-react';
+import { Wallet, Users, Landmark, AlertTriangle, Download, Printer } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export function PosisiSaldo() {
   const { user } = useAuth();
@@ -60,8 +62,153 @@ export function PosisiSaldo() {
   const totalSaldoBank = Object.values(saldoPerMetode).reduce((s, v) => s + v, 0);
   const grandTotal = saldoBendahara + totalMengendapPetugas + totalPendingPetugas;
 
+  const getExportFileName = () => {
+    return `Posisi Saldo - ${formatTanggalDDMMYYYY(new Date().toISOString())}`;
+  };
+
+  const handleExport = () => {
+    const headers = ['Keterangan', 'Nominal'];
+    const csvData = [
+      `"Saldo di Bendahara (Kas + Bank)",${totalSaldoBank}`,
+      `"Saldo Mengendap di Petugas",${totalMengendapPetugas}`,
+      `"Setoran Pending Verifikasi",${totalPendingPetugas}`
+    ];
+    
+    // Add total row
+    csvData.push(`"Total Posisi Dana",${grandTotal}`);
+    
+    const csvContent = [headers.join(','), ...csvData].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${getExportFileName()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    const headers = [['KETERANGAN', 'NOMINAL']];
+    const data = [
+      ['Saldo di Bendahara (Kas + Bank)', formatRupiah(totalSaldoBank)],
+      ['Saldo Mengendap di Petugas', formatRupiah(totalMengendapPetugas)],
+      ['Setoran Pending Verifikasi', formatRupiah(totalPendingPetugas)]
+    ];
+    
+    // Add total row
+    data.push([
+      { content: 'TOTAL POSISI DANA', styles: { fontStyle: 'bold' } }, 
+      { content: formatRupiah(grandTotal), styles: { fontStyle: 'bold', halign: 'right' } }
+    ]);
+    
+    const totalPagesExp = '{total_pages_count_string}';
+
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: 55,
+      margin: { top: 30, left: 14, right: 14, bottom: 20 },
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [255, 255, 255], 
+        textColor: [0, 0, 0], 
+        lineColor: [0, 0, 0], 
+        lineWidth: 0.1, 
+        fontStyle: 'bold', 
+        halign: 'center',
+        valign: 'middle',
+        fontSize: 8
+      },
+      bodyStyles: { 
+        textColor: [0, 0, 0], 
+        lineColor: [0, 0, 0], 
+        lineWidth: 0.1,
+        fontSize: 8
+      },
+      columnStyles: {
+        1: { halign: 'right' }
+      },
+      didDrawPage: function (data) {
+        if (data.pageNumber === 1) {
+          // Header Page 1
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('YAYASAN AR-ROSYAD AL-ISLAMIY', pageWidth / 2, 15, { align: 'center' });
+          
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Jl. Masjid Basyaruddin, RT 21 RW 05, Desa Bogem, Kecamatan Gurah, Kabupaten Kediri, Jawa Timur 64181', pageWidth / 2, 20, { align: 'center' });
+          doc.text('Telp/WA: 085259838384 | Website: http://arrosyad.or.id', pageWidth / 2, 25, { align: 'center' });
+          
+          // Double line
+          doc.setLineWidth(0.5);
+          doc.line(14, 28, pageWidth - 14, 28);
+          doc.setLineWidth(0.2);
+          doc.line(14, 29, pageWidth - 14, 29);
+          
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('LAPORAN RINGKASAN POSISI SALDO', pageWidth / 2, 40, { align: 'center' });
+          doc.text(`TANGGAL CETAK: ${formatTanggalDDMMYYYY(new Date().toISOString())}`, pageWidth / 2, 46, { align: 'center' });
+        } else {
+          // Header subsequent pages
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bolditalic');
+          doc.setTextColor(150, 150, 150);
+          doc.text(`TANGGAL CETAK: ${formatTanggalDDMMYYYY(new Date().toISOString())}`, 14, 15);
+          doc.setLineWidth(0.5);
+          doc.setDrawColor(150, 150, 150);
+          doc.line(14, 18, pageWidth - 14, 18);
+          
+          doc.setTextColor(0, 0, 0);
+          doc.setDrawColor(0, 0, 0);
+        }
+
+        // Footer
+        const str = `halaman ${doc.internal.getNumberOfPages()} dari ${totalPagesExp}`;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(150, 150, 150);
+        
+        doc.setLineWidth(0.1);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+        
+        doc.text('LAPORAN RINGKASAN POSISI SALDO', 14, pageHeight - 10);
+        const expectedStr = `halaman ${doc.internal.getNumberOfPages()} dari 1`;
+        const textWidth = doc.getStringUnitWidth(expectedStr) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+        doc.text(str, pageWidth - 14 - textWidth, pageHeight - 10);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setDrawColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+      }
+    });
+    
+    if (typeof doc.putTotalPages === 'function') {
+      doc.putTotalPages(totalPagesExp);
+    }
+
+    doc.save(`${getExportFileName()}.pdf`);
+  };
+
   return (
     <div className="animate-fade-in-up pb-xl">
+      <div className="flex justify-end gap-sm mb-md" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '16px' }}>
+        <button className="btn btn-secondary flex items-center gap-xs" onClick={handleExportPDF} style={{ color: 'var(--text)' }}>
+          <Printer size={16} /> Export PDF
+        </button>
+        <button className="btn btn-primary flex items-center gap-xs" onClick={handleExport}>
+          <Download size={16} /> Export CSV
+        </button>
+      </div>
+
       {/* Grand Total */}
       <div className="saldo-card mb-lg">
         <div className="saldo-label">Total Posisi Dana Keseluruhan</div>

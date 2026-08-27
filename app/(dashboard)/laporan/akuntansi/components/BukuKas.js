@@ -3,9 +3,11 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalShort } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort, formatTanggalDDMMYYYY } from '@/lib/mock';
 import { hasPermission } from '@/lib/rbac';
-import { ArrowUpRight, ArrowDownRight, BookOpen, Wallet } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, BookOpen, Wallet, Download, Printer } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export function BukuKas() {
   const { user } = useAuth();
@@ -66,8 +68,187 @@ export function BukuKas() {
   const totalMasuk = mutations.filter(m => m.type === 'masuk').reduce((s, m) => s + m.nominal, 0);
   const totalKeluar = mutations.filter(m => m.type === 'keluar').reduce((s, m) => s + m.nominal, 0);
 
+  const getExportFileName = () => {
+    let sumberStr = 'Semua Sumber Dana';
+    if (filterSumber !== 'semua') {
+      sumberStr = metodeDonasi.find(m => m.id === filterSumber)?.nama || 'Semua Sumber Dana';
+    }
+    return `Buku Kas - ${sumberStr}`;
+  };
+
+  const handleExport = () => {
+    const headers = ['No', 'Tanggal', 'Keterangan', 'Metode', 'Jenis Mutasi', 'Nominal', 'Saldo'];
+    const csvData = mutationsWithBalance.map((m, i) => {
+      return [
+        i + 1,
+        `"${formatTanggalDDMMYYYY(m.tanggal)}"`,
+        `"${m.keterangan}"`,
+        `"${m.metode}"`,
+        m.type === 'masuk' ? 'Pemasukan' : 'Pengeluaran',
+        m.nominal,
+        m.balance
+      ].join(',');
+    });
+    
+    // Add total row
+    csvData.push(`"","","","","Total Pemasukan",${totalMasuk},""`);
+    csvData.push(`"","","","","Total Pengeluaran",${totalKeluar},""`);
+    csvData.push(`"","","","","Saldo Akhir","",${Math.max(0, totalMasuk - totalKeluar)}`);
+    
+    const csvContent = [headers.join(','), ...csvData].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${getExportFileName()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    let sumberStr = 'Semua Sumber Dana';
+    if (filterSumber !== 'semua') {
+      sumberStr = metodeDonasi.find(m => m.id === filterSumber)?.nama || 'Semua Sumber Dana';
+    }
+    
+    const headers = [['NO', 'TANGGAL', 'KETERANGAN', 'METODE', 'JENIS MUTASI', 'NOMINAL', 'SALDO']];
+    const data = mutationsWithBalance.map((m, i) => {
+      return [
+        i + 1,
+        formatTanggalDDMMYYYY(m.tanggal),
+        m.keterangan,
+        m.metode,
+        m.type === 'masuk' ? 'Pemasukan' : 'Pengeluaran',
+        formatRupiah(m.nominal),
+        formatRupiah(m.balance)
+      ];
+    });
+    
+    // Add total rows
+    data.push([
+      { content: 'TOTAL PEMASUKAN', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } }, 
+      { content: formatRupiah(totalMasuk), styles: { fontStyle: 'bold', halign: 'right' } },
+      ''
+    ]);
+    data.push([
+      { content: 'TOTAL PENGELUARAN', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } }, 
+      { content: formatRupiah(totalKeluar), styles: { fontStyle: 'bold', halign: 'right' } },
+      ''
+    ]);
+    data.push([
+      { content: 'SALDO AKHIR', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold' } }, 
+      { content: formatRupiah(Math.max(0, totalMasuk - totalKeluar)), styles: { fontStyle: 'bold', halign: 'right' } }
+    ]);
+    
+    const totalPagesExp = '{total_pages_count_string}';
+
+    autoTable(doc, {
+      head: headers,
+      body: data,
+      startY: 55,
+      margin: { top: 30, left: 14, right: 14, bottom: 20 },
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [255, 255, 255], 
+        textColor: [0, 0, 0], 
+        lineColor: [0, 0, 0], 
+        lineWidth: 0.1, 
+        fontStyle: 'bold', 
+        halign: 'center',
+        valign: 'middle',
+        fontSize: 8
+      },
+      bodyStyles: { 
+        textColor: [0, 0, 0], 
+        lineColor: [0, 0, 0], 
+        lineWidth: 0.1,
+        fontSize: 8
+      },
+      columnStyles: {
+        5: { halign: 'right' },
+        6: { halign: 'right' }
+      },
+      didDrawPage: function (data) {
+        if (data.pageNumber === 1) {
+          // Header Page 1
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('YAYASAN AR-ROSYAD AL-ISLAMIY', pageWidth / 2, 15, { align: 'center' });
+          
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Jl. Masjid Basyaruddin, RT 21 RW 05, Desa Bogem, Kecamatan Gurah, Kabupaten Kediri, Jawa Timur 64181', pageWidth / 2, 20, { align: 'center' });
+          doc.text('Telp/WA: 085259838384 | Website: http://arrosyad.or.id', pageWidth / 2, 25, { align: 'center' });
+          
+          // Double line
+          doc.setLineWidth(0.5);
+          doc.line(14, 28, pageWidth - 14, 28);
+          doc.setLineWidth(0.2);
+          doc.line(14, 29, pageWidth - 14, 29);
+          
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('LAPORAN BUKU KAS', pageWidth / 2, 40, { align: 'center' });
+          doc.text(`SUMBER DANA: ${sumberStr.toUpperCase()}`, pageWidth / 2, 46, { align: 'center' });
+        } else {
+          // Header subsequent pages
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bolditalic');
+          doc.setTextColor(150, 150, 150);
+          doc.text(`SUMBER DANA: ${sumberStr.toUpperCase()}`, 14, 15);
+          doc.setLineWidth(0.5);
+          doc.setDrawColor(150, 150, 150);
+          doc.line(14, 18, pageWidth - 14, 18);
+          
+          doc.setTextColor(0, 0, 0);
+          doc.setDrawColor(0, 0, 0);
+        }
+
+        // Footer
+        const str = `halaman ${doc.internal.getNumberOfPages()} dari ${totalPagesExp}`;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(150, 150, 150);
+        
+        doc.setLineWidth(0.1);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+        
+        doc.text('LAPORAN BUKU KAS', 14, pageHeight - 10);
+        const expectedStr = `halaman ${doc.internal.getNumberOfPages()} dari 1`;
+        const textWidth = doc.getStringUnitWidth(expectedStr) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+        doc.text(str, pageWidth - 14 - textWidth, pageHeight - 10);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setDrawColor(0, 0, 0);
+        doc.setFont('helvetica', 'normal');
+      }
+    });
+    
+    if (typeof doc.putTotalPages === 'function') {
+      doc.putTotalPages(totalPagesExp);
+    }
+
+    doc.save(`${getExportFileName()}.pdf`);
+  };
+
   return (
     <div className="animate-fade-in-up pb-xl">
+      <div className="flex justify-end gap-sm mb-md" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '16px' }}>
+        <button className="btn btn-secondary flex items-center gap-xs" onClick={handleExportPDF} style={{ color: 'var(--text)' }}>
+          <Printer size={16} /> Export PDF
+        </button>
+        <button className="btn btn-primary flex items-center gap-xs" onClick={handleExport}>
+          <Download size={16} /> Export CSV
+        </button>
+      </div>
+
       {/* Saldo per Sumber Dana */}
       <div className="grid gap-sm mb-lg" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
         {metodeDonasi.filter(m => m.aktif).map(m => (
