@@ -9,10 +9,10 @@ Aplikasi manajemen donasi untuk Divisi Baitul Maal Ponpes Ar-Rosyad. Mencakup pe
 | Tahap | Deskripsi | Status |
 |-------|-----------|--------|
 | **Tahap 1** | Pondasi — Setup Next.js Project + GitHub | ✅ Selesai |
-| **Tahap 2** | UI/UX — Semua halaman & komponen | ✅ Selesai |
-| **Tahap 3** | Deploy & Auth di Vercel | ⏳ Menunggu |
-| **Tahap 4** | Database (Neon PostgreSQL) | ⏳ Menunggu |
-| **Tahap 5** | Storage (Google Drive) | ⏳ Menunggu |
+| **Tahap 2** | UI/UX — Semua halaman, komponen & Role-Based Dashboard | ✅ Selesai |
+| **Tahap 3** | Deployment ke Vercel (`https://baitul-maal.vercel.app`) | ✅ Selesai (Live) |
+| **Tahap 4** | Database & Real Auth (Neon PostgreSQL + Prisma/NextAuth) | ⏳ Siap Dikerjakan |
+| **Tahap 5** | Cloud Storage (Google Drive / S3) | ⏳ Menunggu |
 
 ---
 
