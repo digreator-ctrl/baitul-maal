@@ -1,0 +1,233 @@
+// ============================================
+// Prisma Schema — Baitul Maal Ponpes Ar-Rosyad
+// Database: PostgreSQL (Neon Serverless)
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// --------------------------------------------
+// 1. PENGGUNA & HAK AKSES (RBAC)
+// --------------------------------------------
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  password  String     // Hashed password
+  avatar    String?    // Inisial atau URL foto
+  alamat    String?
+  noWa      String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  // Relasi
+  roles                 UserRole[]
+  donaturBinaan         Donatur[]      @relation("PetugasDonatur")
+  donasiDicatat         Donasi[]       @relation("PetugasDonasi")
+  setoranDiajukan       Setoran[]      @relation("PetugasSetoran")
+  setoranDiverifikasi   Setoran[]      @relation("BendaharaVerifikasi")
+  pengeluaranDibuat     Pengeluaran[]  @relation("BendaharaPengeluaran")
+
+  @@map("users")
+}
+
+model Role {
+  id          String     @id // 'superadmin', 'admin', 'bendahara', 'petugas', 'pengawas'
+  name        String
+  permissions String[]   // Daftar permissions: ['dashboard.view', 'donasi.create', ...]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relasi
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// --------------------------------------------
+// 2. DATA DONATUR (MUZAKKI / MUNFIQ)
+// --------------------------------------------
+
+model Donatur {
+  id        String   @id @default(cuid())
+  nama      String
+  noWa      String
+  alamat    String
+  provinsi  String?
+  kabupaten String?
+  kecamatan String?
+  desa      String?
+  rt        String?
+  rw        String?
+  lat       Float?
+  lng       Float?
+  rutin     Boolean  @default(false)
+  status    String   @default("aktif") // 'aktif' | 'pasif'
+  petugasId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi
+  petugas   User?    @relation("PetugasDonatur", fields: [petugasId], references: [id], onDelete: SetNull)
+  donasi    Donasi[]
+
+  @@map("donatur")
+}
+
+// --------------------------------------------
+// 3. MASTER DATA KEUANGAN
+// --------------------------------------------
+
+model KategoriDonasi {
+  id        String   @id // 'zakat', 'infak_terikat', 'infak_umum', 'wakaf', 'sedekah'
+  nama      String
+  deskripsi String?
+  aktif     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  donasi    Donasi[]
+
+  @@map("kategori_donasi")
+}
+
+model MetodeDonasi {
+  id            String        @id // 'kas_tunai', 'bsi_utama', 'bri_donasi', 'qris', dll
+  nama          String
+  nomorRekening String?
+  atasNama      String?
+  jenis         String?       // 'tunai' | 'bank' | 'qris'
+  aktif         Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  donasi        Donasi[]
+  setoran       Setoran[]
+  pengeluaran   Pengeluaran[]
+
+  @@map("metode_donasi")
+}
+
+model PosPengeluaran {
+  id          String        @id // 'pos_ops', 'pos_program', 'pos_santri', dll
+  nama        String
+  deskripsi   String?
+  aktif       Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  pengeluaran Pengeluaran[]
+
+  @@map("pos_pengeluaran")
+}
+
+// --------------------------------------------
+// 4. TRANSAKSI (PENERIMAAN, SETORAN, PENGELUARAN)
+// --------------------------------------------
+
+model Donasi {
+  id         String         @id @default(cuid())
+  donaturId  String
+  petugasId  String
+  kategoriId String
+  metodeId   String
+  nominal    BigInt
+  tanggal    DateTime
+  keterangan String?
+  status     String         @default("belum_disetor") // 'belum_disetor' | 'menunggu_verifikasi' | 'terverifikasi' | 'ditolak'
+  setoranId  String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  // Relasi
+  donatur    Donatur        @relation(fields: [donaturId], references: [id], onDelete: Restrict)
+  petugas    User           @relation("PetugasDonasi", fields: [petugasId], references: [id], onDelete: Restrict)
+  kategori   KategoriDonasi @relation(fields: [kategoriId], references: [id], onDelete: Restrict)
+  metode     MetodeDonasi   @relation(fields: [metodeId], references: [id], onDelete: Restrict)
+  setoran    Setoran?       @relation(fields: [setoranId], references: [id], onDelete: SetNull)
+
+  @@map("donasi")
+}
+
+model Setoran {
+  id                 String       @id @default(cuid())
+  petugasId          String
+  tanggal            DateTime
+  metodeDonasiId     String
+  totalNominal       BigInt
+  keterangan         String?
+  status             String       @default("menunggu_verifikasi") // 'menunggu_verifikasi' | 'terverifikasi' | 'ditolak'
+  verifikasiOleh     String?      // ID Bendahara yang memverifikasi
+  tanggalVerifikasi  DateTime?
+  catatan            String?      // Catatan bendahara (terutama jika ditolak)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  // Relasi
+  petugas            User         @relation("PetugasSetoran", fields: [petugasId], references: [id], onDelete: Restrict)
+  bendahara          User?        @relation("BendaharaVerifikasi", fields: [verifikasiOleh], references: [id], onDelete: SetNull)
+  metodeDonasi       MetodeDonasi @relation(fields: [metodeDonasiId], references: [id], onDelete: Restrict)
+  donasiList         Donasi[]
+
+  @@map("setoran")
+}
+
+model Pengeluaran {
+  id          String         @id @default(cuid())
+  tanggal     DateTime
+  posId       String
+  metodeId    String
+  nominal     BigInt
+  penerima    String
+  keterangan  String?
+  dibuatOleh  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relasi
+  pos         PosPengeluaran @relation(fields: [posId], references: [id], onDelete: Restrict)
+  metode      MetodeDonasi   @relation(fields: [metodeId], references: [id], onDelete: Restrict)
+  bendahara   User?          @relation("BendaharaPengeluaran", fields: [dibuatOleh], references: [id], onDelete: SetNull)
+
+  @@map("pengeluaran")
+}
+
+// --------------------------------------------
+// 5. PENGATURAN APLIKASI
+// --------------------------------------------
+
+model PengaturanAplikasi {
+  id              String   @id @default("default")
+  namaYayasan     String   @default("Baitul Maal Ponpes Ar-Rosyad")
+  alamat          String?  @default("Jl. Masjid Basyaruddin, RT 21 RW 05, Desa Bogem, Kec. Gurah, Kediri, Jawa Timur")
+  noWa            String?  @default("085259838384")
+  email           String?  @default("info@arrosyad.or.id")
+  website         String?  @default("http://arrosyad.or.id")
+  logoUrl         String?
+  pesanWaDonasi   String?
+  pesanWaReminder String?
+  updatedAt       DateTime @updatedAt
+
+  @@map("pengaturan_aplikasi")
+}
