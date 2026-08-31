@@ -111,7 +111,17 @@ export default function SetorPage() {
       return;
     }
 
-    createSetoran(user?.id, form.tanggal, form.metodeDonasiId, form.nominal, form.keterangan);
+    // Ambil ID donasi yang belum disetor dan sesuai dengan metode yang dipilih
+    let donasiTerkait = donasi.filter(d => 
+      d.metodeDonasiId === form.metodeDonasiId && 
+      d.status === 'belum_disetor'
+    );
+    if (user?.role === 'petugas') {
+      donasiTerkait = donasiTerkait.filter(d => d.petugasId === user.id);
+    }
+    const donasiIds = donasiTerkait.map(d => d.id);
+
+    createSetoran(user?.id, form.tanggal, form.metodeDonasiId, form.nominal, form.keterangan, donasiIds);
     
     setForm({
       tanggal: new Date().toISOString().split('T')[0],

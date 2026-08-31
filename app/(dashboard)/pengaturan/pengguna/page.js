@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useData } from '@/contexts/DataContext';
 import { ArrowLeft, Plus, Users, Shield } from 'lucide-react';
 
 export default function PenggunaPage() {
-  const { users, roles, addUser } = useData();
+  const { users, roles, addUser, fetchUsers } = useData();
   const router = useRouter();
+
+  useEffect(() => {
+    if (fetchUsers) fetchUsers();
+  }, [fetchUsers]);
   const [showForm, setShowForm] = useState(false);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ name: '', alamat: '', noWa: '', roles: [], email: '', password: '' });

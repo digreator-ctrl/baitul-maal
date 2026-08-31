@@ -74,14 +74,22 @@ async function main() {
   console.log('✅ Roles seeded');
 
   // 2. Seed Users
-  const defaultPassword = await bcrypt.hash('admin123', 10);
+  // Menggunakan Environment Variable agar sangat aman, tidak ada data asli di kodingan
+  const adminEmail = process.env.ADMIN_EMAIL || 'superadmin@arrosyad.id';
+  const adminPasswordRaw = process.env.ADMIN_PASSWORD || 'admin123';
+  
+  const superadminPassword = await bcrypt.hash(adminPasswordRaw, 10);
   const users = [
-    { id: 'u1', name: 'Ahmad Fauzi', email: 'superadmin@arrosyad.id', password: defaultPassword, roleId: 'superadmin', avatar: 'AF', alamat: 'Jl. Pesantren No. 1', noWa: '081234567890' },
-    { id: 'u2', name: 'Siti Aminah', email: 'admin@arrosyad.id', password: defaultPassword, roleId: 'admin', avatar: 'SA', alamat: 'Jl. Melati No. 5', noWa: '081234567891' },
-    { id: 'u3', name: 'Hasan Basri', email: 'bendahara@arrosyad.id', password: defaultPassword, roleId: 'bendahara', avatar: 'HB', alamat: 'Jl. Mawar No. 10', noWa: '081234567892' },
-    { id: 'u4', name: 'Umar Hadi', email: 'petugas1@arrosyad.id', password: defaultPassword, roleId: 'petugas', avatar: 'UH', alamat: 'Jl. Kenanga No. 3', noWa: '081234567893' },
-    { id: 'u5', name: 'Fatimah Zahra', email: 'petugas2@arrosyad.id', password: defaultPassword, roleId: 'petugas', avatar: 'FZ', alamat: 'Jl. Anggrek No. 12', noWa: '081234567894' },
-    { id: 'u6', name: 'KH. Abdul Karim', email: 'pengawas@arrosyad.id', password: defaultPassword, roleId: 'pengawas', avatar: 'AK', alamat: 'Komplek Ar-Rosyad', noWa: '081234567895' },
+    { 
+      id: 'u-superadmin', 
+      name: 'Super Admin', 
+      email: adminEmail, 
+      password: superadminPassword, 
+      roleId: 'superadmin', 
+      avatar: 'SA', 
+      alamat: 'Sekretariat', 
+      noWa: '08123456789' 
+    }
   ];
 
   for (const u of users) {

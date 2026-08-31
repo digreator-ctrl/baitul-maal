@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -10,11 +10,15 @@ import { Users, Plus, Search, MapPin, Phone, Filter } from 'lucide-react';
 
 export default function PendataanPage() {
   const { user } = useAuth();
-  const { donatur, donasi, deleteDonatur } = useData();
+  const { donatur, donasi, deleteDonatur, fetchDonatur } = useData();
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filterKategori, setFilterKategori] = useState('semua');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  useEffect(() => {
+    if (fetchDonatur) fetchDonatur();
+  }, [fetchDonatur]);
 
   const filtered = useMemo(() => {
     return donatur.filter(d => {

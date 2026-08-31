@@ -35,14 +35,7 @@ export default function LoginPage() {
     }
   };
 
-  // Demo accounts
-  const demoAccounts = [
-    { label: 'Super Admin', email: 'superadmin@arrosyad.id' },
-    { label: 'Admin', email: 'admin@arrosyad.id' },
-    { label: 'Bendahara', email: 'bendahara@arrosyad.id' },
-    { label: 'Petugas', email: 'petugas1@arrosyad.id' },
-    { label: 'Pengawas', email: 'pengawas@arrosyad.id' },
-  ];
+
 
   return (
     <div className="auth-layout">
@@ -148,24 +141,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Demo Accounts */}
-        <div style={{ marginTop: 'var(--space-xl)' }}>
-          <p className="text-sm text-center text-tertiary mb-md">
-            Demo Login (Password: admin123)
-          </p>
-          <div className="flex flex-wrap gap-xs" style={{ justifyContent: 'center' }}>
-            {demoAccounts.map(acc => (
-              <button
-                key={acc.email}
-                type="button"
-                className="filter-chip"
-                onClick={() => { setEmail(acc.email); setPassword('admin123'); }}
-              >
-                {acc.label}
-              </button>
-            ))}
-          </div>
-        </div>
+
       </div>
     </div>
   );
