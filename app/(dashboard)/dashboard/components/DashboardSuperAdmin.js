@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalShort } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort } from '@/lib/utils';
 import { DashboardBendahara } from './DashboardBendahara';
 import { DashboardPetugas } from './DashboardPetugas';
 import { DashboardPengawas } from './DashboardPengawas';

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { hasPermission, isReadOnly } from '@/lib/rbac';
-import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/utils';
 import { HandCoins, Plus, Search, Calendar, Filter } from 'lucide-react';
 import SearchableSelect from '@/components/SearchableSelect';
 

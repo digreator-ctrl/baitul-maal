@@ -3,7 +3,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalDDMMYYYY, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggalDDMMYYYY, getStatusBadge } from '@/lib/utils';
 import { hasPermission } from '@/lib/rbac';
 import { AlertTriangle, Clock, Download, Printer, Filter, Calendar, X, ChevronRight } from 'lucide-react';
 import jsPDF from 'jspdf';

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { hasPermission } from '@/lib/rbac';
-import { formatTanggalShort } from '@/lib/mock';
+import { formatTanggalShort } from '@/lib/utils';
 import { Users, Plus, Search, MapPin, Phone, Filter } from 'lucide-react';
 
 export default function PendataanPage() {

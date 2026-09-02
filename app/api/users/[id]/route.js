@@ -2,15 +2,16 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
 export async function PUT(request, { params }) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const id = params.id;
+    const { id } = await params;
 
     if (id === "u-digreator") {
       return NextResponse.json({ error: "Akun Super Admin utama tidak dapat diubah." }, { status: 403 });
@@ -75,10 +76,10 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const id = params.id;
+    const { id } = await params;
 
     if (id === "u-digreator") {
       return NextResponse.json({ error: "Akun Super Admin utama tidak dapat dihapus." }, { status: 403 });

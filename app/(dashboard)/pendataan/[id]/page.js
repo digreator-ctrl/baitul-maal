@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { hasPermission } from '@/lib/rbac';
-import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/utils';
 import { ArrowLeft, Edit, Trash2, MapPin, Phone, ExternalLink, HandCoins } from 'lucide-react';
 import { useState } from 'react';
 

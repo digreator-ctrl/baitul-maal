@@ -1,19 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import {
-  mockDonatur as initialDonatur,
-  mockDonasi as initialDonasi,
-  mockSetoran as initialSetoran,
-  mockPengeluaran as initialPengeluaran,
-  mockKategoriDonasi as initialKategoriDonasi,
-  mockMetodeDonasi as initialMetodeDonasi,
-  mockPosPengeluaran as initialPosPengeluaran,
-  mockRoles as initialRoles,
-  mockUsers as initialUsers,
-  mockPesanWa as initialPesanWa,
-  generateId,
-} from '@/lib/mock';
+
+const initialPesanWa = `Assalamu'alaikum Bpk/Ibu {nama},\n\nTerima kasih atas donasi sebesar {nominal} untuk kategori {kategori} yang telah kami terima pada tanggal {tanggal} melalui {metode}.\n\nSemoga menjadi amal jariyah yang terus mengalir pahalanya. Aamiin.`;
 
 const DataContext = createContext(null);
 

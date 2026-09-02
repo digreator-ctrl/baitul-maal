@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalShort } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort } from '@/lib/utils';
 import { ArrowLeft, Calendar, FileText, Wallet, FolderOpen, Info, User, Clock, Edit3 } from 'lucide-react';
 
 export default function DetailPengeluaranPage() {

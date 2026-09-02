@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
 export async function GET(request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const data = await prisma.metodeDonasi.findMany({ orderBy: { nama: "asc" } });
     return NextResponse.json(data);
@@ -17,11 +18,11 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const { nama, jenis, instansi, nomorRekening, atasNama } = await request.json();
+    const { nama, jenis, nomorRekening, atasNama } = await request.json();
     const newData = await prisma.metodeDonasi.create({ 
-      data: { nama, jenis, instansi, nomorRekening, atasNama } 
+      data: { nama, jenis, nomorRekening, atasNama } 
     });
     return NextResponse.json(newData, { status: 201 });
   } catch (error) {

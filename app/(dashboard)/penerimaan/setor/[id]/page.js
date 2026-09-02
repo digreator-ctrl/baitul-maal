@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggal, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggal, getStatusBadge } from '@/lib/utils';
 import { ArrowLeft, CheckCircle2, Clock, XCircle, HandCoins, Calendar, Wallet, FileText, User } from 'lucide-react';
 
 export default function DetailSetoranPage({ params }) {

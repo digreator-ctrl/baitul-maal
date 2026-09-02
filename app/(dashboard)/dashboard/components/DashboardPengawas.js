@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatPersen } from '@/lib/mock';
+import { formatRupiah, formatPersen } from '@/lib/utils';
 import {
   Landmark, TrendingUp, TrendingDown, Users, PieChart, 
   BarChart3, ShieldCheck, AlertCircle, ArrowUpRight, ChevronRight,

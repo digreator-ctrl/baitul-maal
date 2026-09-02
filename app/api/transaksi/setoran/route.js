@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { serializeBigInt } from "@/lib/utils";
 
 const prisma = new PrismaClient();
 
 export async function GET(request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const data = await prisma.setoran.findMany({
@@ -16,7 +18,7 @@ export async function GET(request) {
       },
       orderBy: { tanggal: "desc" },
     });
-    return NextResponse.json(data);
+    return NextResponse.json(serializeBigInt(data));
   } catch (error) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -24,7 +26,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { tanggal, metodeDonasiId, totalNominal, keterangan, donasiIds } = await request.json();
@@ -33,7 +35,7 @@ export async function POST(request) {
       data: {
         tanggal: new Date(tanggal),
         metodeDonasiId,
-        totalNominal: parseInt(totalNominal),
+        totalNominal: BigInt(totalNominal),
         keterangan,
         petugasId: session.user?.id,
         status: 'menunggu_verifikasi',
@@ -51,7 +53,7 @@ export async function POST(request) {
       });
     }
 
-    return NextResponse.json(newData, { status: 201 });
+    return NextResponse.json(serializeBigInt(newData), { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

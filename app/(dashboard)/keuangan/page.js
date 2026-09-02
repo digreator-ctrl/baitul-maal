@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { isReadOnly } from '@/lib/rbac';
-import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/utils';
 import { Landmark, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function KeuanganPage() {

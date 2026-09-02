@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { isReadOnly } from '@/lib/rbac';
-import { formatRupiah, formatTanggalShort } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort } from '@/lib/utils';
 import { ArrowLeft, Plus, Minus, Wallet, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function PengeluaranPage() {

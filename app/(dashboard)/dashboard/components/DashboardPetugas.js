@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/utils';
 import {
   Wallet, HandCoins, Users, Clock, AlertTriangle, CheckCircle2,
   XCircle, PlusCircle, Send, UserPlus, ChevronRight, FileText, ArrowUpRight

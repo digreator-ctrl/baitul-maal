@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
 export async function GET(request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const data = await prisma.posPengeluaran.findMany({ orderBy: { nama: "asc" } });
     return NextResponse.json(data);
@@ -17,7 +18,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { nama, deskripsi } = await request.json();
     const newData = await prisma.posPengeluaran.create({ data: { nama, deskripsi } });

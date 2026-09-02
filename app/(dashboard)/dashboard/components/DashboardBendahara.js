@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/utils';
 import {
   Wallet, Landmark, TrendingUp, TrendingDown, Clock, 
   CheckCircle2, ArrowRight, ArrowDownLeft, ArrowUpRight,

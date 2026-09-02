@@ -4,7 +4,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/utils';
 import { ChevronDown, ChevronUp, Plus, Clock, CheckCircle2, XCircle, HandCoins } from 'lucide-react';
 
 export default function SetorPage() {

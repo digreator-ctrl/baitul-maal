@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { hasPermission } from '@/lib/rbac';
-import { formatRupiah, formatTanggalShort } from '@/lib/mock';
+import { formatRupiah, formatTanggalShort } from '@/lib/utils';
 import { ArrowLeft, User, Calendar, MapPin, HandCoins, Info, Edit, Trash2, MessageCircle } from 'lucide-react';
 
 export default function DetailDonasiPage() {
