@@ -449,15 +449,15 @@ export function DataProvider({ children }) {
     donasi
       .filter(d => d.status === 'terverifikasi')
       .forEach(d => {
-        if (saldo[d.metodeDonasiId] !== undefined) {
-          saldo[d.metodeDonasiId] += d.nominal;
+        if (saldo[d.metodeId] !== undefined) {
+          saldo[d.metodeId] += d.nominal;
         }
       });
 
     // Subtract expenses
     pengeluaran.forEach(p => {
-      if (saldo[p.sumberDanaId] !== undefined) {
-        saldo[p.sumberDanaId] -= p.nominal;
+      if (saldo[p.metodeId] !== undefined) {
+        saldo[p.metodeId] -= p.nominal;
       }
     });
 

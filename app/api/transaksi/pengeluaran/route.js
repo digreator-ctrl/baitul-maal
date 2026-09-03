@@ -12,7 +12,7 @@ export async function GET(request) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const data = await prisma.pengeluaran.findMany({
-      include: { pos: true, sumberDana: true },
+      include: { pos: true, metode: true },
       orderBy: { tanggal: "desc" },
     });
     return NextResponse.json(serializeBigInt(data));

@@ -29,7 +29,7 @@ export default function PengeluaranPage() {
         .reduce((sum, s) => sum + s.totalNominal, 0);
       
       const totalKeluar = pengeluaran
-        .filter(p => p.sumberDanaId === m.id)
+        .filter(p => p.metodeId === m.id)
         .reduce((sum, p) => sum + p.nominal, 0);
 
       return {
@@ -151,8 +151,8 @@ export default function PengeluaranPage() {
           </div>
         ) : (
           sortedPengeluaran.map(pg => {
-            const met = metodeDonasi.find(m => m.id === pg.sumberDanaId);
-            const pos = posPengeluaran.find(p => p.id === pg.posPengeluaranId);
+            const met = metodeDonasi.find(m => m.id === pg.metodeId);
+            const pos = posPengeluaran.find(p => p.id === pg.posId);
             return (
               <div 
                 key={pg.id} 
