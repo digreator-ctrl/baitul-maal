@@ -13,7 +13,7 @@ export async function GET(request) {
 
     const data = await prisma.setoran.findMany({
       include: {
-        metode: true,
+        metodeDonasi: true,
         donasiList: true
       },
       orderBy: { tanggal: "desc" },

@@ -40,7 +40,7 @@ export default function SetorPage() {
   // Hitung rekapitulasi per metode untuk petugas yang login
   const rekap = useMemo(() => {
     return metodeDonasi.filter(m => m.aktif).map(m => {
-      let donasiMethod = donasi.filter(d => d.metodeDonasiId === m.id);
+      let donasiMethod = donasi.filter(d => d.metodeId === m.id);
       if (user?.role === 'petugas') {
         donasiMethod = donasiMethod.filter(d => d.petugasId === user.id);
       }
@@ -113,7 +113,7 @@ export default function SetorPage() {
 
     // Ambil ID donasi yang belum disetor dan sesuai dengan metode yang dipilih
     let donasiTerkait = donasi.filter(d => 
-      d.metodeDonasiId === form.metodeDonasiId && 
+      d.metodeId === form.metodeDonasiId && 
       d.status === 'belum_disetor'
     );
     if (user?.role === 'petugas') {
