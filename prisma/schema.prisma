@@ -84,6 +84,7 @@ model Donatur {
   lng       Float?
   rutin     Boolean  @default(false)
   status    String   @default("aktif") // 'aktif' | 'pasif'
+  kategori  String   @default("Keluarga") // 'Keluarga' | 'Non Keluarga'
   petugasId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,4 +1,4 @@
-# 🕌 Aplikasi Baitul Maal — Ponpes Ar-Rosyad
+t# 🕌 Aplikasi Baitul Maal — Ponpes Ar-Rosyad
 
 Aplikasi manajemen donasi untuk Divisi Baitul Maal Ponpes Ar-Rosyad. Mencakup pendataan donatur, pencatatan donasi, penyetoran ke bendahara, verifikasi, pengeluaran, dan pelaporan — dengan Role-Based Access Control (RBAC) untuk 5 jenis pengguna.
 
@@ -11,7 +11,7 @@ Aplikasi manajemen donasi untuk Divisi Baitul Maal Ponpes Ar-Rosyad. Mencakup pe
 | **Tahap 1** | Pondasi — Setup Next.js Project + GitHub | ✅ Selesai |
 | **Tahap 2** | UI/UX — Semua halaman, komponen & Role-Based Dashboard | ✅ Selesai |
 | **Tahap 3** | Deployment ke Vercel (`https://baitul-maal.vercel.app`) | ✅ Selesai (Live) |
-| **Tahap 4** | Database & Real Auth (Neon PostgreSQL + Prisma/NextAuth) | ✅ Selesai |
+| **Tahap 4** | Database & Real Auth (Neon PostgreSQL + Prisma/NextAuth) | 🔄 Skema & Seed Selesai, Integrasi API |
 | **Tahap 5** | Cloud Storage (Google Drive / S3) | ⏳ Menunggu |
 
 ---
