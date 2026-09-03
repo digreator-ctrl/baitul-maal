@@ -1,9 +1,8 @@
+import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const prisma = new PrismaClient();
 
 export async function GET(request) {
   try {
@@ -14,7 +13,15 @@ export async function GET(request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(donatur);
+    const mapped = donatur.map(d => ({
+      ...d,
+      kota: d.kabupaten || '',
+      kelurahan: d.desa || '',
+      keterangan: d.alamat || '',
+      linkGmaps: d.lat && d.lng ? `https://www.google.com/maps?q=${d.lat},${d.lng}` : '',
+    }));
+
+    return NextResponse.json(mapped);
   } catch (error) {
     console.error("GET DONATUR ERROR:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -40,17 +47,28 @@ export async function POST(request) {
       rw, 
       lat, 
       lng, 
+      linkGmaps,
       rutin, 
       status,
-      kategori // currently not in DB schema, but frontend sends it
+      kategori
     } = body;
 
-    const finalAlamat = alamat || keterangan;
-    const finalKabupaten = kabupaten || kota;
-    const finalDesa = desa || kelurahan;
+    const finalAlamat = alamat || keterangan || '';
+    const finalKabupaten = kabupaten || kota || '';
+    const finalDesa = desa || kelurahan || '';
 
-    if (!nama || !noWa || !finalAlamat) {
-      return NextResponse.json({ error: "Nama, No WA, dan Alamat wajib diisi" }, { status: 400 });
+    let finalLat = lat !== undefined && lat !== null && lat !== '' ? parseFloat(lat) : null;
+    let finalLng = lng !== undefined && lng !== null && lng !== '' ? parseFloat(lng) : null;
+    if ((finalLat === null || finalLng === null) && linkGmaps) {
+      const match = linkGmaps.match(/q=(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/);
+      if (match) {
+        finalLat = parseFloat(match[1]);
+        finalLng = parseFloat(match[3]);
+      }
+    }
+
+    if (!nama || !noWa) {
+      return NextResponse.json({ error: "Nama dan No WA wajib diisi" }, { status: 400 });
     }
 
     const newDonatur = await prisma.donatur.create({
@@ -58,14 +76,14 @@ export async function POST(request) {
         nama,
         noWa,
         alamat: finalAlamat,
-        provinsi,
+        provinsi: provinsi || '',
         kabupaten: finalKabupaten,
-        kecamatan,
+        kecamatan: kecamatan || '',
         desa: finalDesa,
-        rt,
-        rw,
-        lat: lat ? parseFloat(lat) : null,
-        lng: lng ? parseFloat(lng) : null,
+        rt: rt || null,
+        rw: rw || null,
+        lat: finalLat,
+        lng: finalLng,
         rutin: !!rutin,
         status: status || 'aktif',
         kategori: kategori || 'Keluarga',
@@ -73,8 +91,15 @@ export async function POST(request) {
       },
     });
 
-    // We can manually add kategori to the response so the frontend receives it
-    return NextResponse.json({ ...newDonatur, kategori: kategori || 'Non Keluarga' }, { status: 201 });
+    const responseData = {
+      ...newDonatur,
+      kota: newDonatur.kabupaten || '',
+      kelurahan: newDonatur.desa || '',
+      keterangan: newDonatur.alamat || '',
+      linkGmaps: newDonatur.lat && newDonatur.lng ? `https://www.google.com/maps?q=${newDonatur.lat},${newDonatur.lng}` : (linkGmaps || ''),
+    };
+
+    return NextResponse.json(responseData, { status: 201 });
   } catch (error) {
     console.error("POST DONATUR ERROR:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -22,9 +22,10 @@ export default function PendataanPage() {
 
   const filtered = useMemo(() => {
     return donatur.filter(d => {
+      const kotaText = (d.kota || d.kabupaten || '').toLowerCase();
       const matchSearch = d.nama.toLowerCase().includes(search.toLowerCase()) ||
         d.noWa.includes(search) ||
-        d.kota.toLowerCase().includes(search.toLowerCase());
+        kotaText.includes(search.toLowerCase());
       const matchKategori = filterKategori === 'semua' || d.kategori === filterKategori;
       return matchSearch && matchKategori;
     });
@@ -93,7 +94,7 @@ export default function PendataanPage() {
                 <div className="list-item-title">{d.nama}</div>
                 <div className="list-item-subtitle flex items-center gap-xs">
                   <MapPin size={12} />
-                  {d.kota}
+                  {d.kota || d.kabupaten || '-'}
                 </div>
               </div>
               <div className="list-item-trailing">

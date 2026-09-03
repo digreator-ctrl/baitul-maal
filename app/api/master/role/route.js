@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-
-const prisma = new PrismaClient();
 
 export async function GET(request) {
   try {
@@ -12,6 +10,7 @@ export async function GET(request) {
     const data = await prisma.role.findMany({ orderBy: { name: "asc" } });
     return NextResponse.json(data);
   } catch (error) {
+    console.error("GET /api/master/role error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

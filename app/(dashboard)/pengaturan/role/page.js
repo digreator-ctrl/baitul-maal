@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useData } from '@/contexts/DataContext';
 import { ArrowLeft, Plus, Edit, Trash2, ShieldCheck } from 'lucide-react';
@@ -71,8 +71,12 @@ const PERMISSION_GROUPS = [
 ];
 
 export default function ManajemenRolePage() {
-  const { roles, addRole, updateRole, deleteRole } = useData();
+  const { roles, fetchRoles, addRole, updateRole, deleteRole } = useData();
   const router = useRouter();
+
+  useEffect(() => {
+    if (fetchRoles) fetchRoles();
+  }, [fetchRoles]);
   
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);

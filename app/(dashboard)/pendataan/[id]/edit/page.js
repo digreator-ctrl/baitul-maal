@@ -41,14 +41,14 @@ export default function EditDonaturPage() {
         kategori: d.kategori || 'Keluarga',
         provinsi: d.provinsi || '',
         provinsiId: d.provinsiId || '',
-        kota: d.kota || '',
+        kota: d.kota || d.kabupaten || '',
         kotaId: d.kotaId || '',
         kecamatan: d.kecamatan || '',
         kecamatanId: d.kecamatanId || '',
-        kelurahan: d.kelurahan || '',
+        kelurahan: d.kelurahan || d.desa || '',
         kelurahanId: d.kelurahanId || '',
-        keterangan: d.keterangan || '',
-        linkGmaps: d.linkGmaps || '',
+        keterangan: d.keterangan || d.alamat || '',
+        linkGmaps: d.linkGmaps || (d.lat && d.lng ? `https://www.google.com/maps?q=${d.lat},${d.lng}` : ''),
         noWa: d.noWa || '',
       });
     }
@@ -66,7 +66,7 @@ export default function EditDonaturPage() {
         // Auto-match data teks lama ke ID
         setForm(prev => {
           if (prev.provinsi && !prev.provinsiId) {
-            const match = data.find(p => p.name.toLowerCase() === prev.provinsi.toLowerCase());
+            const match = data.find(p => p.name.toLowerCase() === prev.provinsi.toLowerCase() || prev.provinsi.toLowerCase().includes(p.name.toLowerCase()));
             if (match) return { ...prev, provinsiId: match.id };
           }
           return prev;
@@ -88,7 +88,13 @@ export default function EditDonaturPage() {
           
           setForm(prev => {
             if (prev.kota && !prev.kotaId) {
-              const match = data.find(c => c.name.toLowerCase() === prev.kota.toLowerCase() || c.name.toLowerCase() === prev.kota.replace('Kabupaten', 'KAB.').toLowerCase());
+              const pk = prev.kota.toLowerCase();
+              const match = data.find(c => {
+                const cn = c.name.toLowerCase();
+                return cn === pk ||
+                       cn === pk.replace('kabupaten', 'kab.').toLowerCase() ||
+                       cn.replace('kabupaten ', '').replace('kota ', '') === pk.replace('kabupaten ', '').replace('kota ', '');
+              });
               if (match) return { ...prev, kotaId: match.id };
             }
             return prev;
@@ -111,7 +117,8 @@ export default function EditDonaturPage() {
           
           setForm(prev => {
             if (prev.kecamatan && !prev.kecamatanId) {
-              const match = data.find(d => d.name.toLowerCase() === prev.kecamatan.toLowerCase());
+              const pk = prev.kecamatan.toLowerCase();
+              const match = data.find(d => d.name.toLowerCase() === pk || d.name.toLowerCase().includes(pk) || pk.includes(d.name.toLowerCase()));
               if (match) return { ...prev, kecamatanId: match.id };
             }
             return prev;
@@ -134,7 +141,8 @@ export default function EditDonaturPage() {
           
           setForm(prev => {
             if (prev.kelurahan && !prev.kelurahanId) {
-              const match = data.find(v => v.name.toLowerCase() === prev.kelurahan.toLowerCase());
+              const pk = prev.kelurahan.toLowerCase();
+              const match = data.find(v => v.name.toLowerCase() === pk || v.name.toLowerCase().includes(pk) || pk.includes(v.name.toLowerCase()));
               if (match) return { ...prev, kelurahanId: match.id };
             }
             return prev;
@@ -210,18 +218,22 @@ export default function EditDonaturPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (step < 3) {
       handleNext();
       return;
     }
     
-    if (Date.now() - lastStepTime < 500) {
+    if (Date.now() - lastStepTime < 500 || submitting) {
       return;
     }
 
-    updateDonatur(id, form);
+    setSubmitting(true);
+    await updateDonatur(id, form);
+    setSubmitting(false);
     router.push(`/pendataan/${id}`);
   };
 

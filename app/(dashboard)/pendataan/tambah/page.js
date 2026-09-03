@@ -149,7 +149,9 @@ export default function TambahDonaturPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (step < 3) {
       handleNext();
@@ -157,12 +159,16 @@ export default function TambahDonaturPage() {
     }
     
     // Cegah double-click yang menembus dari tombol "Lanjut" (jika user klik 2x cepat)
-    if (Date.now() - lastStepTime < 500) {
+    if (Date.now() - lastStepTime < 500 || submitting) {
       return;
     }
 
-    addDonatur({ ...form, createdBy: user?.id });
-    router.push('/pendataan');
+    setSubmitting(true);
+    const result = await addDonatur({ ...form, createdBy: user?.id });
+    setSubmitting(false);
+    if (result) {
+      router.push('/pendataan');
+    }
   };
 
   return (

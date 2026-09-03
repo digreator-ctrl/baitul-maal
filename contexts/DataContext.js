@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 
 const initialPesanWa = `Assalamu'alaikum Bpk/Ibu {nama},\n\nTerima kasih atas donasi sebesar {nominal} untuk kategori {kategori} yang telah kami terima pada tanggal {tanggal} melalui {metode}.\n\nSemoga menjadi amal jariyah yang terus mengalir pahalanya. Aamiin.`;
 
@@ -507,18 +508,22 @@ export function DataProvider({ children }) {
     showToast,
   };
 
-  // Initial Fetch all data on mount
+  const { status } = useSession();
+
+  // Fetch all data when authenticated or on mount
   useEffect(() => {
-    fetchDonatur();
-    fetchDonasi();
-    fetchSetoran();
-    fetchPengeluaran();
-    fetchKategoriDonasi();
-    fetchMetodeDonasi();
-    fetchPosPengeluaran();
-    fetchRoles();
-    fetchUsers();
-  }, [fetchDonatur, fetchDonasi, fetchSetoran, fetchPengeluaran, fetchKategoriDonasi, fetchMetodeDonasi, fetchPosPengeluaran, fetchRoles, fetchUsers]);
+    if (status === 'authenticated') {
+      fetchDonatur();
+      fetchDonasi();
+      fetchSetoran();
+      fetchPengeluaran();
+      fetchKategoriDonasi();
+      fetchMetodeDonasi();
+      fetchPosPengeluaran();
+      fetchRoles();
+      fetchUsers();
+    }
+  }, [status, fetchDonatur, fetchDonasi, fetchSetoran, fetchPengeluaran, fetchKategoriDonasi, fetchMetodeDonasi, fetchPosPengeluaran, fetchRoles, fetchUsers]);
 
   return (
     <DataContext.Provider value={value}>

@@ -107,9 +107,9 @@ export default function DetailDonaturPage() {
               <div className="flex items-center gap-sm">
                 <MapPin size={16} color="var(--text-secondary)" />
                 <div>
-                  <div className="text-sm">{d.kelurahan}, {d.kecamatan}</div>
-                  <div className="text-sm text-secondary">{d.kota}, {d.provinsi}</div>
-                  {d.keterangan && <div className="text-sm text-tertiary">{d.keterangan}</div>}
+                  <div className="text-sm">{[d.kelurahan || d.desa, d.kecamatan].filter(Boolean).join(', ')}</div>
+                  <div className="text-sm text-secondary">{[d.kota || d.kabupaten, d.provinsi].filter(Boolean).join(', ')}</div>
+                  {(d.keterangan || d.alamat) && <div className="text-sm text-tertiary">{d.keterangan || d.alamat}</div>}
                 </div>
               </div>
               <div className="flex items-center gap-sm">
@@ -118,10 +118,10 @@ export default function DetailDonaturPage() {
                   {d.noWa}
                 </a>
               </div>
-              {d.linkGmaps && (
+              {(d.linkGmaps || (d.lat && d.lng)) && (
                 <div className="flex items-center gap-sm">
                   <ExternalLink size={16} color="var(--text-secondary)" />
-                  <a href={d.linkGmaps} target="_blank" rel="noopener noreferrer" className="text-sm">
+                  <a href={d.linkGmaps || `https://www.google.com/maps?q=${d.lat},${d.lng}`} target="_blank" rel="noopener noreferrer" className="text-sm">
                     Lihat di Google Maps
                   </a>
                 </div>
