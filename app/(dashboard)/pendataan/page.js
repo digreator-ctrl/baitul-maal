@@ -14,6 +14,7 @@ export default function PendataanPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filterKategori, setFilterKategori] = useState('semua');
+  const [sortBy, setSortBy] = useState('abjad-asc');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
@@ -21,15 +22,23 @@ export default function PendataanPage() {
   }, [fetchDonatur]);
 
   const filtered = useMemo(() => {
-    return donatur.filter(d => {
+    let result = donatur.filter(d => {
       const kotaText = (d.kota || d.kabupaten || '').toLowerCase();
       const matchSearch = d.nama.toLowerCase().includes(search.toLowerCase()) ||
-        d.noWa.includes(search) ||
+        (d.noWa || '').includes(search) ||
         kotaText.includes(search.toLowerCase());
       const matchKategori = filterKategori === 'semua' || d.kategori === filterKategori;
       return matchSearch && matchKategori;
     });
-  }, [donatur, search, filterKategori]);
+
+    if (sortBy === 'abjad-asc') {
+      result.sort((a, b) => a.nama.localeCompare(b.nama));
+    } else if (sortBy === 'abjad-desc') {
+      result.sort((a, b) => b.nama.localeCompare(a.nama));
+    }
+
+    return result;
+  }, [donatur, search, filterKategori, sortBy]);
 
   const getDonaturDonasiCount = (donaturId) => {
     return donasi.filter(d => d.donaturId === donaturId).length;
@@ -63,16 +72,48 @@ export default function PendataanPage() {
         />
       </div>
 
-      <div className="filter-bar">
-        {['semua', 'Keluarga', 'Non Keluarga'].map(k => (
-          <button
-            key={k}
-            className={`filter-chip ${filterKategori === k ? 'active' : ''}`}
-            onClick={() => setFilterKategori(k)}
+      <div className="filter-bar" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: '24px', marginBottom: 'var(--space-md)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Kategori:</span>
+          <select 
+            value={filterKategori} 
+            onChange={(e) => setFilterKategori(e.target.value)}
+            className="input"
+            style={{ 
+              padding: '6px 12px', 
+              fontSize: '0.875rem', 
+              minWidth: '160px', 
+              margin: 0, 
+              height: 'auto',
+              backgroundColor: 'var(--bg-secondary, #1f2937)',
+              color: 'var(--text-primary, #f9fafb)'
+            }}
           >
-            {k === 'semua' ? 'Semua' : k}
-          </button>
-        ))}
+            <option value="semua">Semua Kategori</option>
+            <option value="Keluarga">Keluarga</option>
+            <option value="Non Keluarga">Non Keluarga</option>
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Urutkan:</span>
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            className="input"
+            style={{ 
+              padding: '6px 12px', 
+              fontSize: '0.875rem', 
+              minWidth: '140px', 
+              margin: 0, 
+              height: 'auto',
+              backgroundColor: 'var(--bg-secondary, #1f2937)',
+              color: 'var(--text-primary, #f9fafb)'
+            }}
+          >
+            <option value="abjad-asc">Abjad (A-Z)</option>
+            <option value="abjad-desc">Abjad (Z-A)</option>
+          </select>
+        </div>
       </div>
 
       {/* Donatur List */}
