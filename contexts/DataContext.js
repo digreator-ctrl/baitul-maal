@@ -84,9 +84,10 @@ export function DataProvider({ children }) {
       const res = await fetch(`/api/donatur/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setDonatur(prev => prev.filter(d => d.id !== id));
-        showToast('Donatur berhasil dihapus', 'danger');
+        showToast('Donatur berhasil dihapus', 'success');
       } else {
-        showToast('Gagal menghapus donatur', 'danger');
+        const err = await res.json().catch(() => null);
+        showToast(err?.error || 'Gagal menghapus donatur', 'danger');
       }
     } catch (error) {
       showToast('Terjadi kesalahan', 'danger');

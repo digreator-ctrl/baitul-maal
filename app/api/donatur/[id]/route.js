@@ -67,6 +67,16 @@ export async function DELETE(request, { params }) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
+    
+    // Periksa apakah donatur memiliki relasi donasi
+    const donationCount = await prisma.donasi.count({ where: { donaturId: id } });
+    if (donationCount > 0) {
+      return NextResponse.json(
+        { error: "Gagal menghapus: Donatur ini sudah memiliki riwayat donasi." }, 
+        { status: 400 }
+      );
+    }
+
     await prisma.donatur.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
