@@ -46,8 +46,11 @@ export default function DetailDonaturPage() {
         </button>
         <div className="flex items-start justify-between">
           <div>
-            <h1>{d.nama}</h1>
-            <p>{d.kategori}</p>
+            <h1 style={{ marginBottom: '8px' }}>Detail Donatur</h1>
+            <div className="flex items-center gap-sm">
+              <span className="font-semibold" style={{ fontSize: '1.125rem' }}>{d.nama}</span>
+              <span className="badge badge-neutral">{d.kategori}</span>
+            </div>
           </div>
           <div className="flex gap-xs">
             {hasPermission(user, 'donatur.edit') && (
@@ -114,18 +117,20 @@ export default function DetailDonaturPage() {
               </div>
               <div className="flex items-center gap-sm">
                 <Phone size={16} color="var(--text-secondary)" />
-                <a href={`https://wa.me/${d.noWa?.replace(/^0/, '62')}`} target="_blank" rel="noopener noreferrer" className="text-sm">
+                <a href={`https://wa.me/${d.noWa?.replace(/^0/, '62')}`} target="_blank" rel="noopener noreferrer" className="text-sm" style={{ color: 'var(--primary)' }}>
                   {d.noWa}
                 </a>
               </div>
-              {d.linkGmaps && (
-                <div className="flex items-center gap-sm">
-                  <ExternalLink size={16} color="var(--text-secondary)" />
-                  <a href={d.linkGmaps} target="_blank" rel="noopener noreferrer" className="text-sm">
-                    Lihat di Google Maps
+              <div className="flex items-center gap-sm">
+                <ExternalLink size={16} color="var(--text-secondary)" />
+                {d.linkGmaps ? (
+                  <a href={d.linkGmaps} target="_blank" rel="noopener noreferrer" className="text-sm font-medium" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>
+                    Buka di Google Maps
                   </a>
-                </div>
-              )}
+                ) : (
+                  <span className="text-sm text-tertiary italic">Link Google Maps belum ditambahkan</span>
+                )}
+              </div>
             </div>
           </div>
 
