@@ -7,6 +7,7 @@ import { useData } from '@/contexts/DataContext';
 import { hasPermission } from '@/lib/rbac';
 import { formatTanggalShort } from '@/lib/utils';
 import { Users, Plus, Search, MapPin, Phone, Filter } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function PendataanPage() {
   const { user } = useAuth();
@@ -75,44 +76,28 @@ export default function PendataanPage() {
       <div className="filter-bar" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: '24px', marginBottom: 'var(--space-md)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Kategori:</span>
-          <select 
+          <CustomSelect 
             value={filterKategori} 
-            onChange={(e) => setFilterKategori(e.target.value)}
-            className="input"
-            style={{ 
-              padding: '6px 12px', 
-              fontSize: '0.875rem', 
-              minWidth: '160px', 
-              margin: 0, 
-              height: 'auto',
-              backgroundColor: 'var(--bg-secondary, #1f2937)',
-              color: 'var(--text-primary, #f9fafb)'
-            }}
-          >
-            <option value="semua">Semua Kategori</option>
-            <option value="Keluarga">Keluarga</option>
-            <option value="Non Keluarga">Non Keluarga</option>
-          </select>
+            onChange={(val) => setFilterKategori(val)}
+            options={[
+              { value: 'semua', label: 'Semua Kategori' },
+              { value: 'Keluarga', label: 'Keluarga' },
+              { value: 'Non Keluarga', label: 'Non Keluarga' }
+            ]}
+            style={{ minWidth: '160px' }}
+          />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Urutkan:</span>
-          <select 
+          <CustomSelect 
             value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value)}
-            className="input"
-            style={{ 
-              padding: '6px 12px', 
-              fontSize: '0.875rem', 
-              minWidth: '140px', 
-              margin: 0, 
-              height: 'auto',
-              backgroundColor: 'var(--bg-secondary, #1f2937)',
-              color: 'var(--text-primary, #f9fafb)'
-            }}
-          >
-            <option value="abjad-asc">Abjad (A-Z)</option>
-            <option value="abjad-desc">Abjad (Z-A)</option>
-          </select>
+            onChange={(val) => setSortBy(val)}
+            options={[
+              { value: 'abjad-asc', label: 'Abjad (A-Z)' },
+              { value: 'abjad-desc', label: 'Abjad (Z-A)' }
+            ]}
+            style={{ minWidth: '140px' }}
+          />
         </div>
       </div>
 
