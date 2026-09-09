@@ -18,10 +18,6 @@ export async function PUT(request, { params }) {
       kabupaten, kota,
       kecamatan, 
       desa, kelurahan,
-      rt, 
-      rw, 
-      lat, 
-      lng, 
       linkGmaps,
       rutin, 
       status,
@@ -32,16 +28,6 @@ export async function PUT(request, { params }) {
     const finalKabupaten = kabupaten !== undefined ? kabupaten : (kota !== undefined ? kota : undefined);
     const finalDesa = desa !== undefined ? desa : (kelurahan !== undefined ? kelurahan : undefined);
 
-    let finalLat = lat !== undefined && lat !== null && lat !== '' ? parseFloat(lat) : undefined;
-    let finalLng = lng !== undefined && lng !== null && lng !== '' ? parseFloat(lng) : undefined;
-    if ((finalLat === undefined || finalLng === undefined) && linkGmaps) {
-      const match = linkGmaps.match(/q=(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/);
-      if (match) {
-        finalLat = parseFloat(match[1]);
-        finalLng = parseFloat(match[3]);
-      }
-    }
-
     const updateData = {};
     if (nama !== undefined) updateData.nama = nama;
     if (noWa !== undefined) updateData.noWa = noWa;
@@ -50,10 +36,7 @@ export async function PUT(request, { params }) {
     if (finalKabupaten !== undefined) updateData.kabupaten = finalKabupaten;
     if (kecamatan !== undefined) updateData.kecamatan = kecamatan;
     if (finalDesa !== undefined) updateData.desa = finalDesa;
-    if (rt !== undefined) updateData.rt = rt;
-    if (rw !== undefined) updateData.rw = rw;
-    if (finalLat !== undefined) updateData.lat = finalLat;
-    if (finalLng !== undefined) updateData.lng = finalLng;
+    if (linkGmaps !== undefined) updateData.linkGmaps = linkGmaps;
     if (rutin !== undefined) updateData.rutin = !!rutin;
     if (status !== undefined) updateData.status = status;
     if (kategori !== undefined) updateData.kategori = kategori;
@@ -68,7 +51,7 @@ export async function PUT(request, { params }) {
       kota: updatedDonatur.kabupaten || '',
       kelurahan: updatedDonatur.desa || '',
       keterangan: updatedDonatur.alamat || '',
-      linkGmaps: updatedDonatur.lat && updatedDonatur.lng ? `https://www.google.com/maps?q=${updatedDonatur.lat},${updatedDonatur.lng}` : (linkGmaps || ''),
+      linkGmaps: updatedDonatur.linkGmaps || '',
     };
 
     return NextResponse.json(responseData);

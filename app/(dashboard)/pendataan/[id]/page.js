@@ -118,10 +118,10 @@ export default function DetailDonaturPage() {
                   {d.noWa}
                 </a>
               </div>
-              {(d.linkGmaps || (d.lat && d.lng)) && (
+              {d.linkGmaps && (
                 <div className="flex items-center gap-sm">
                   <ExternalLink size={16} color="var(--text-secondary)" />
-                  <a href={d.linkGmaps || `https://www.google.com/maps?q=${d.lat},${d.lng}`} target="_blank" rel="noopener noreferrer" className="text-sm">
+                  <a href={d.linkGmaps} target="_blank" rel="noopener noreferrer" className="text-sm">
                     Lihat di Google Maps
                   </a>
                 </div>

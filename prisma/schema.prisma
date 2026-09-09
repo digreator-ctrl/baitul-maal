@@ -78,10 +78,7 @@ model Donatur {
   kabupaten String?
   kecamatan String?
   desa      String?
-  rt        String?
-  rw        String?
-  lat       Float?
-  lng       Float?
+  linkGmaps String?
   rutin     Boolean  @default(false)
   status    String   @default("aktif") // 'aktif' | 'pasif'
   kategori  String   @default("Keluarga") // 'Keluarga' | 'Non Keluarga'

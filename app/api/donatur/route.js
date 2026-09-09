@@ -18,7 +18,7 @@ export async function GET(request) {
       kota: d.kabupaten || '',
       kelurahan: d.desa || '',
       keterangan: d.alamat || '',
-      linkGmaps: d.lat && d.lng ? `https://www.google.com/maps?q=${d.lat},${d.lng}` : '',
+      linkGmaps: d.linkGmaps || '',
     }));
 
     return NextResponse.json(mapped);
@@ -43,10 +43,6 @@ export async function POST(request) {
       kabupaten, kota, // frontend sends kota
       kecamatan, 
       desa, kelurahan, // frontend sends kelurahan
-      rt, 
-      rw, 
-      lat, 
-      lng, 
       linkGmaps,
       rutin, 
       status,
@@ -56,16 +52,6 @@ export async function POST(request) {
     const finalAlamat = alamat || keterangan || '';
     const finalKabupaten = kabupaten || kota || '';
     const finalDesa = desa || kelurahan || '';
-
-    let finalLat = lat !== undefined && lat !== null && lat !== '' ? parseFloat(lat) : null;
-    let finalLng = lng !== undefined && lng !== null && lng !== '' ? parseFloat(lng) : null;
-    if ((finalLat === null || finalLng === null) && linkGmaps) {
-      const match = linkGmaps.match(/q=(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/);
-      if (match) {
-        finalLat = parseFloat(match[1]);
-        finalLng = parseFloat(match[3]);
-      }
-    }
 
     if (!nama || !noWa) {
       return NextResponse.json({ error: "Nama dan No WA wajib diisi" }, { status: 400 });
@@ -80,10 +66,7 @@ export async function POST(request) {
         kabupaten: finalKabupaten,
         kecamatan: kecamatan || '',
         desa: finalDesa,
-        rt: rt || null,
-        rw: rw || null,
-        lat: finalLat,
-        lng: finalLng,
+        linkGmaps: linkGmaps || null,
         rutin: !!rutin,
         status: status || 'aktif',
         kategori: kategori || 'Keluarga',
@@ -96,7 +79,7 @@ export async function POST(request) {
       kota: newDonatur.kabupaten || '',
       kelurahan: newDonatur.desa || '',
       keterangan: newDonatur.alamat || '',
-      linkGmaps: newDonatur.lat && newDonatur.lng ? `https://www.google.com/maps?q=${newDonatur.lat},${newDonatur.lng}` : (linkGmaps || ''),
+      linkGmaps: newDonatur.linkGmaps || '',
     };
 
     return NextResponse.json(responseData, { status: 201 });
