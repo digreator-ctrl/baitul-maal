@@ -11,7 +11,7 @@ import { DashboardAdmin } from './DashboardAdmin';
 import {
   ShieldCheck, Wallet, TrendingUp, TrendingDown, Users, 
   Settings, Key, AlertCircle, Eye, HandCoins, ArrowRight,
-  Sparkles, CheckCircle2, Clock
+  Sparkles, CheckCircle2, Clock, Landmark
 } from 'lucide-react';
 
 export function DashboardSuperAdmin() {
