@@ -16,6 +16,8 @@ export async function PUT(request, { params }) {
     if (body.nominal !== undefined) body.nominal = BigInt(body.nominal);
     if (body.kategoriDonasiId) { body.kategoriId = body.kategoriDonasiId; delete body.kategoriDonasiId; }
     if (body.metodeDonasiId) { body.metodeId = body.metodeDonasiId; delete body.metodeDonasiId; }
+    if (body.tanggal) body.tanggal = new Date(body.tanggal);
+    if ('laporanTerkirim' in body) delete body.laporanTerkirim;
     
     const updateData = await prisma.donasi.update({
       where: { id },

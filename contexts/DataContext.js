@@ -19,6 +19,7 @@ export function DataProvider({ children }) {
   const [users, setUsers] = useState([]);
   const [pesanWa, setPesanWa] = useState(initialPesanWa);
   const [toast, setToast] = useState(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Toast helper
   const showToast = useCallback((message, type = 'success') => {
@@ -476,6 +477,7 @@ export function DataProvider({ children }) {
     donatur, donasi, setoran, pengeluaran,
     kategoriDonasi, metodeDonasi, posPengeluaran, roles, users,
     toast,
+    isLoadingData,
     
     // Donatur
     fetchDonatur, addDonatur, updateDonatur, deleteDonatur,
@@ -513,17 +515,28 @@ export function DataProvider({ children }) {
 
   // Fetch all data when authenticated or on mount
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchDonatur();
-      fetchDonasi();
-      fetchSetoran();
-      fetchPengeluaran();
-      fetchKategoriDonasi();
-      fetchMetodeDonasi();
-      fetchPosPengeluaran();
-      fetchRoles();
-      fetchUsers();
-    }
+    let isMounted = true;
+    const loadAllData = async () => {
+      if (status === 'authenticated') {
+        setIsLoadingData(true);
+        await Promise.all([
+          fetchDonatur(),
+          fetchDonasi(),
+          fetchSetoran(),
+          fetchPengeluaran(),
+          fetchKategoriDonasi(),
+          fetchMetodeDonasi(),
+          fetchPosPengeluaran(),
+          fetchRoles(),
+          fetchUsers()
+        ]);
+        if (isMounted) {
+          setIsLoadingData(false);
+        }
+      }
+    };
+    loadAllData();
+    return () => { isMounted = false; };
   }, [status, fetchDonatur, fetchDonasi, fetchSetoran, fetchPengeluaran, fetchKategoriDonasi, fetchMetodeDonasi, fetchPosPengeluaran, fetchRoles, fetchUsers]);
 
   return (

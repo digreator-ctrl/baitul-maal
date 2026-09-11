@@ -46,15 +46,15 @@ export default function DetailDonasiPage() {
   }
 
   const donaturInfo = donatur.find(d => d.id === dataDonasi.donaturId);
-  const kategori = kategoriDonasi.find(k => k.id === dataDonasi.kategoriDonasiId);
-  const metode = metodeDonasi.find(m => m.id === dataDonasi.metodeDonasiId);
+  const kategori = kategoriDonasi.find(k => k.id === dataDonasi.kategoriId);
+  const metode = metodeDonasi.find(m => m.id === dataDonasi.metodeId);
   
   const openEdit = () => {
     setForm({
-      kategoriDonasiId: dataDonasi.kategoriDonasiId,
-      metodeDonasiId: dataDonasi.metodeDonasiId,
+      kategoriDonasiId: dataDonasi.kategoriId,
+      metodeDonasiId: dataDonasi.metodeId,
       nominal: dataDonasi.nominal,
-      tanggal: dataDonasi.tanggal
+      tanggal: dataDonasi.tanggal ? String(dataDonasi.tanggal).split('T')[0] : ''
     });
     setShowEdit(true);
   };
@@ -96,7 +96,8 @@ export default function DetailDonasiPage() {
       .replace('{kategori}', kategori?.nama || '')
       .replace('{metode}', metode?.nama || '')
       .replace('{tanggal}', formatTanggalShort(dataDonasi.tanggal));
-    updateDonasi(id, { laporanTerkirim: true });
+    
+    // updateDonasi(id, { laporanTerkirim: true }); // Field doesn't exist in Prisma schema
     
     window.open(`https://wa.me/${noWa}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -112,10 +113,10 @@ export default function DetailDonasiPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <h1 style={{ marginBottom: 0 }}>Detail Donasi</h1>
-            {dataDonasi.laporanTerkirim ? (
-              <span className="badge badge-success" style={{ fontSize: '0.75rem', padding: '4px 8px' }}>Terkirim (WA)</span>
+            {dataDonasi.status === 'terverifikasi' ? (
+              <span className="badge badge-success" style={{ fontSize: '0.75rem', padding: '4px 8px' }}>Terverifikasi</span>
             ) : (
-              <span className="badge badge-warning" style={{ fontSize: '0.75rem', padding: '4px 8px' }}>Belum Terkirim (WA)</span>
+              <span className="badge badge-warning" style={{ fontSize: '0.75rem', padding: '4px 8px' }}>Belum Disetor</span>
             )}
           </div>
           <div className="flex gap-xs flex-wrap">

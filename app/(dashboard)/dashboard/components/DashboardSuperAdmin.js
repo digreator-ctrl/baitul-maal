@@ -42,7 +42,69 @@ export function DashboardSuperAdmin() {
 
     // Petugas & users
     const totalUsers = users.length;
-    const totalPetugas = users.filter(u => u.roles?.includes('petugas')).length;
+    const totalPetugas = users.filter(u => u.roles?.includes('petugas') || u.roleId === 'petugas').length;
+
+    // Petugas Performance Stats
+    const petugasStats = users
+      .filter(u => u.roles?.includes('petugas') || u.roleId === 'petugas')
+      .map(petugas => {
+        const donasiPetugas = donasi.filter(d => d.petugasId === petugas.id && d.status === 'terverifikasi');
+        const donaturUnik = new Set(donasiPetugas.map(d => d.donaturId)).size;
+        const donasiTerhimpun = donasiPetugas.reduce((sum, d) => sum + d.nominal, 0);
+
+        const semuaDonasi = donasi.filter(d => d.petugasId === petugas.id && d.status !== 'ditolak');
+        const totalTagihan = semuaDonasi.reduce((sum, d) => sum + d.nominal, 0);
+
+        const setoranPetugas = setoran.filter(s => s.petugasId === petugas.id);
+        const setoranDisetujui = setoranPetugas.filter(s => s.status === 'terverifikasi').reduce((sum, s) => sum + s.totalNominal, 0);
+        const setoranPending = setoranPetugas.filter(s => s.status === 'menunggu_verifikasi').reduce((sum, s) => sum + s.totalNominal, 0);
+
+        const danaMengendap = Math.max(0, totalTagihan - setoranDisetujui - setoranPending);
+
+        return {
+          ...petugas,
+          donaturDilayani: donaturUnik,
+          donasiTerhimpun,
+          setoranDisetujui,
+          danaMengendap,
+        };
+      });
+
+    const totalPetugasStats = {
+      donaturDilayani: petugasStats.reduce((sum, p) => sum + p.donaturDilayani, 0),
+      donasiTerhimpun: petugasStats.reduce((sum, p) => sum + p.donasiTerhimpun, 0),
+      setoranDisetujui: petugasStats.reduce((sum, p) => sum + p.setoranDisetujui, 0),
+      danaMengendap: petugasStats.reduce((sum, p) => sum + p.danaMengendap, 0),
+    };
+
+    // Bendahara Performance Stats
+    const bendaharaStats = users
+      .filter(u => u.roles?.includes('bendahara') || u.roleId === 'bendahara')
+      .map(bendahara => {
+        const setoranDiterima = setoran
+          .filter(s => s.status === 'terverifikasi' && (s.verifikasiOleh === bendahara.id || s.verifikasiOleh === null)) // fallback if null but we assign to general bendahara? Let's just use verifikasiOleh if available. If none, we can accumulate it to 'unknown' but it's fine.
+          .reduce((sum, s) => sum + s.totalNominal, 0);
+
+        // Actual strict filter
+        const strictSetoranDiterima = setoran
+          .filter(s => s.status === 'terverifikasi' && s.verifikasiOleh === bendahara.id)
+          .reduce((sum, s) => sum + s.totalNominal, 0);
+
+        const penggunaanDana = pengeluaran
+          .filter(p => p.dibuatOleh === bendahara.id)
+          .reduce((sum, p) => sum + p.nominal, 0);
+
+        return {
+          ...bendahara,
+          setoranDiterima: strictSetoranDiterima,
+          penggunaanDana,
+        };
+      });
+
+    const totalBendaharaStats = {
+      setoranDiterima: bendaharaStats.reduce((sum, b) => sum + b.setoranDiterima, 0),
+      penggunaanDana: bendaharaStats.reduce((sum, b) => sum + b.penggunaanDana, 0),
+    };
 
     return {
       totalSaldo,
@@ -53,6 +115,10 @@ export function DashboardSuperAdmin() {
       pendingSetoran,
       totalUsers,
       totalPetugas,
+      petugasStats,
+      totalPetugasStats,
+      bendaharaStats,
+      totalBendaharaStats,
     };
   }, [donasi, donatur, setoran, pengeluaran, users, getSaldoPerMetode]);
 
@@ -186,6 +252,104 @@ export function DashboardSuperAdmin() {
                 <TrendingUp size={18} />
                 <span className="font-semibold">Semua Laporan</span>
               </Link>
+            </div>
+          </div>
+
+          {/* Kinerja & Rekapitulasi Petugas Lapangan */}
+          <div className="card mb-lg" style={{ padding: '0' }}>
+            <div style={{ padding: 'var(--space-lg)', borderBottom: '1px solid var(--border)' }}>
+              <h3 className="font-bold flex items-center gap-xs">
+                <Users size={18} color="var(--primary)" />
+                Kinerja & Rekapitulasi Petugas Lapangan
+              </h3>
+            </div>
+            <div className="table-container table-mobile" style={{ borderRadius: '0', border: 'none' }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Nama Petugas</th>
+                    <th className="text-center">Donatur Dilayani</th>
+                    <th className="text-right">Donasi Terhimpun</th>
+                    <th className="text-right">Setoran Diverifikasi</th>
+                    <th className="text-right">Dana di Tangan (Mengendap)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.petugasStats.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="text-center text-secondary py-lg">Tidak ada data petugas</td>
+                    </tr>
+                  ) : (
+                    stats.petugasStats.map(petugas => (
+                      <tr key={petugas.id}>
+                        <td data-label="Nama Petugas" className="font-semibold">{petugas.name}</td>
+                        <td data-label="Donatur Dilayani" className="text-center">{petugas.donaturDilayani} org</td>
+                        <td data-label="Donasi Terhimpun" className="text-right text-success">{formatRupiah(petugas.donasiTerhimpun)}</td>
+                        <td data-label="Setoran Diverifikasi" className="text-right text-info">{formatRupiah(petugas.setoranDisetujui)}</td>
+                        <td data-label="Dana Mengendap" className="text-right font-bold" style={{ color: petugas.danaMengendap > 0 ? 'var(--warning)' : 'var(--text-secondary)' }}>
+                          {formatRupiah(petugas.danaMengendap)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+                {stats.petugasStats.length > 0 && (
+                  <tfoot style={{ background: 'var(--bg-elevated)', fontWeight: 'bold' }}>
+                    <tr>
+                      <td data-label="Akumulasi" className="text-right">AKUMULASI TOTAL</td>
+                      <td data-label="Total Donatur" className="text-center text-primary-color">{stats.totalPetugasStats.donaturDilayani} org</td>
+                      <td data-label="Total Terhimpun" className="text-right text-success">{formatRupiah(stats.totalPetugasStats.donasiTerhimpun)}</td>
+                      <td data-label="Total Disetor" className="text-right text-info">{formatRupiah(stats.totalPetugasStats.setoranDisetujui)}</td>
+                      <td data-label="Total Mengendap" className="text-right text-warning">{formatRupiah(stats.totalPetugasStats.danaMengendap)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </div>
+
+          {/* Kinerja & Rekapitulasi Bendahara */}
+          <div className="card mb-xl" style={{ padding: '0' }}>
+            <div style={{ padding: 'var(--space-lg)', borderBottom: '1px solid var(--border)' }}>
+              <h3 className="font-bold flex items-center gap-xs">
+                <Landmark size={18} color="var(--primary)" />
+                Kinerja & Rekapitulasi Bendahara
+              </h3>
+            </div>
+            <div className="table-container table-mobile" style={{ borderRadius: '0', border: 'none' }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Nama Bendahara</th>
+                    <th className="text-right">Donasi/Setoran Diterima</th>
+                    <th className="text-right">Penggunaan Dana (Pengeluaran)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.bendaharaStats.length === 0 ? (
+                    <tr>
+                      <td colSpan="3" className="text-center text-secondary py-lg">Tidak ada data bendahara</td>
+                    </tr>
+                  ) : (
+                    stats.bendaharaStats.map(bendahara => (
+                      <tr key={bendahara.id}>
+                        <td data-label="Nama Bendahara" className="font-semibold">{bendahara.name}</td>
+                        <td data-label="Setoran Diterima" className="text-right text-info">{formatRupiah(bendahara.setoranDiterima)}</td>
+                        <td data-label="Penggunaan Dana" className="text-right text-danger">-{formatRupiah(bendahara.penggunaanDana)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+                {stats.bendaharaStats.length > 0 && (
+                  <tfoot style={{ background: 'var(--bg-elevated)', fontWeight: 'bold' }}>
+                    <tr>
+                      <td data-label="Akumulasi" className="text-right">AKUMULASI TOTAL</td>
+                      <td data-label="Total Diterima" className="text-right text-info">{formatRupiah(stats.totalBendaharaStats.setoranDiterima)}</td>
+                      <td data-label="Total Digunakan" className="text-right text-danger">-{formatRupiah(stats.totalBendaharaStats.penggunaanDana)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
             </div>
           </div>
 

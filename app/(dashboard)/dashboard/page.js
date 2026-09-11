@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useData } from '@/contexts/DataContext';
 import { DashboardPetugas } from './components/DashboardPetugas';
 import { DashboardBendahara } from './components/DashboardBendahara';
 import { DashboardPengawas } from './components/DashboardPengawas';
@@ -10,19 +11,13 @@ import { DashboardSuperAdmin } from './components/DashboardSuperAdmin';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { isLoadingData } = useData();
 
   // Determine user primary role
   const primaryRole = useMemo(() => {
     if (!user) return 'petugas';
-    const userRoles = user.roles || (user.role ? [user.role] : []);
     
-    if (userRoles.includes('superadmin')) return 'superadmin';
-    if (userRoles.includes('bendahara')) return 'bendahara';
-    if (userRoles.includes('pengawas')) return 'pengawas';
-    if (userRoles.includes('admin')) return 'admin';
-    if (userRoles.includes('petugas')) return 'petugas';
-
-    return 'petugas';
+    return user.roleId || 'petugas';
   }, [user]);
 
   const roleLabel = useMemo(() => {
@@ -58,11 +53,20 @@ export default function DashboardPage() {
       </div>
 
       {/* Render Role-Specific Dashboard */}
-      {primaryRole === 'superadmin' && <DashboardSuperAdmin />}
-      {primaryRole === 'bendahara' && <DashboardBendahara />}
-      {primaryRole === 'pengawas' && <DashboardPengawas />}
-      {primaryRole === 'admin' && <DashboardAdmin />}
-      {primaryRole === 'petugas' && <DashboardPetugas />}
+      {isLoadingData ? (
+        <div className="card p-xl text-center flex-col items-center justify-center gap-md" style={{ minHeight: '300px', display: 'flex' }}>
+          <div style={{ width: '40px', height: '40px', border: '4px solid var(--border)', borderTop: '4px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <p className="text-secondary mt-sm">Memuat data dashboard...</p>
+        </div>
+      ) : (
+        <>
+          {primaryRole === 'superadmin' && <DashboardSuperAdmin />}
+          {primaryRole === 'bendahara' && <DashboardBendahara />}
+          {primaryRole === 'pengawas' && <DashboardPengawas />}
+          {primaryRole === 'admin' && <DashboardAdmin />}
+          {primaryRole === 'petugas' && <DashboardPetugas />}
+        </>
+      )}
     </div>
   );
 }
