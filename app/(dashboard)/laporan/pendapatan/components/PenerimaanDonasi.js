@@ -24,14 +24,14 @@ export function PenerimaanDonasi() {
   const [search, setSearch] = useState('');
 
   const petugasList = useMemo(() => {
-    return users.filter(u => u.role === 'petugas');
+    return users.filter(u => u.roleId === 'petugas');
   }, [users]);
 
   if (!hasPermission(user, 'laporan.penerimaan_donasi')) {
     return <div className="p-xl text-center">Akses ditolak. Anda tidak memiliki izin.</div>;
   }
 
-  const isPetugas = user?.role === 'petugas';
+  const isPetugas = user?.roleId === 'petugas';
 
   const openFilterModal = () => {
     setTempDateFilterMode(dateFilterMode);
@@ -106,7 +106,7 @@ export function PenerimaanDonasi() {
 
   const filtered = useMemo(() => {
     return donasi
-      .filter(d => d.status === 'terverifikasi')
+      .filter(d => d.status !== 'ditolak')
       .filter(d => {
         // Petugas only sees own data
         if (isPetugas && d.petugasId !== user?.id) return false;

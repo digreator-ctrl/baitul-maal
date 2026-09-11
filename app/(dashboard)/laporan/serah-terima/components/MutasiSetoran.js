@@ -63,11 +63,11 @@ export function MutasiSetoran() {
     return <div className="p-xl text-center">Akses ditolak. Anda tidak memiliki izin.</div>;
   }
 
-  const isPetugas = user?.role === 'petugas';
+  const isPetugas = user?.roleId === 'petugas';
 
   // Get list of petugas users
   const petugasList = useMemo(() => {
-    return users.filter(u => u.roles?.includes('petugas'));
+    return users.filter(u => u.roleId === 'petugas');
   }, [users]);
 
   const { filterStart, filterEnd } = useMemo(() => {

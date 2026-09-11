@@ -39,7 +39,7 @@ export function DashboardPengawas() {
       : 0;
 
     // Total dana mengendap di petugas
-    const petugasList = users.filter(u => u.roles?.includes('petugas'));
+    const petugasList = users.filter(u => u.roleId === 'petugas');
     let totalMengendapSemuaPetugas = 0;
 
     petugasList.forEach(petugas => {
