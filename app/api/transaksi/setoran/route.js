@@ -10,7 +10,13 @@ export async function GET(request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const where = {};
+    if (session.user.roleId === 'petugas') {
+      where.petugasId = session.user.id;
+    }
+
     const data = await prisma.setoran.findMany({
+      where,
       include: {
         metodeDonasi: true,
         donasiList: true
