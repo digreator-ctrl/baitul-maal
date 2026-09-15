@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useData } from '@/contexts/DataContext';
-import { ArrowLeft, Plus, Users, Shield } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Shield, Eye, EyeOff } from 'lucide-react';
 
 export default function PenggunaPage() {
   const { users, roles, addUser, fetchUsers } = useData();
@@ -15,10 +15,12 @@ export default function PenggunaPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', alamat: '', noWa: '', roles: [], email: '', password: '' });
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const openAdd = () => {
     setForm({ name: '', alamat: '', noWa: '', roles: [], email: '', password: '' });
     setErrors({});
+    setShowPassword(false);
     setShowForm(true);
   };
 
@@ -162,7 +164,12 @@ export default function PenggunaPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Password *</label>
-                  <input type="password" className="form-input" style={{ borderColor: errors.password ? 'var(--danger)' : undefined }} value={form.password} onChange={(e) => { setForm(prev => ({ ...prev, password: e.target.value })); if (errors.password) setErrors(prev => ({ ...prev, password: undefined })); }} />
+                  <div style={{ position: 'relative' }}>
+                    <input type={showPassword ? "text" : "password"} className="form-input" style={{ borderColor: errors.password ? 'var(--danger)' : undefined, paddingRight: '40px' }} value={form.password} onChange={(e) => { setForm(prev => ({ ...prev, password: e.target.value })); if (errors.password) setErrors(prev => ({ ...prev, password: undefined })); }} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                   {errors.password && <span className="form-error">{errors.password}</span>}
                 </div>
               </div>

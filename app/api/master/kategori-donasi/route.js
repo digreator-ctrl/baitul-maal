@@ -20,7 +20,8 @@ export async function POST(request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { nama, deskripsi } = await request.json();
-    const newData = await prisma.kategoriDonasi.create({ data: { nama, deskripsi } });
+    const id = nama.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_' + Date.now().toString().slice(-4);
+    const newData = await prisma.kategoriDonasi.create({ data: { id, nama, deskripsi } });
     return NextResponse.json(newData, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

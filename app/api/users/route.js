@@ -29,6 +29,7 @@ export async function GET(request) {
       isActive: u.isActive,
       roleId: u.roles.length > 0 ? u.roles[0].roleId : null,
       roleName: u.roles.length > 0 ? u.roles[0].role.name : "No Role",
+      roles: u.roles.map((ur) => ur.roleId),
     }));
 
     return NextResponse.json(formattedUsers);

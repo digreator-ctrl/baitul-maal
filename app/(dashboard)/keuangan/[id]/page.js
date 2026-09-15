@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { formatRupiah, formatTanggal, getStatusBadge } from '@/lib/utils';
-import { isReadOnly } from '@/lib/rbac';
+import { hasPermission } from '@/lib/rbac';
 import { ArrowLeft, CheckCircle2, Clock, XCircle, HandCoins, Calendar, Wallet, FileText, User } from 'lucide-react';
 
 export default function DetailVerifikasiSetoranPage({ params }) {
@@ -19,7 +19,6 @@ export default function DetailVerifikasiSetoranPage({ params }) {
   const [showReject, setShowReject] = useState(false);
   const [catatan, setCatatan] = useState('');
 
-  const readOnly = isReadOnly(user);
 
   useEffect(() => {
     const found = setoran.find(s => s.id === id);
@@ -134,7 +133,7 @@ export default function DetailVerifikasiSetoranPage({ params }) {
         )}
 
         {/* Action Buttons */}
-        {data.status === 'menunggu_verifikasi' && !readOnly && (
+        {data.status === 'menunggu_verifikasi' && hasPermission(user, 'keuangan.verifikasi') && (
           <div style={{ padding: '0 24px 24px 24px' }}>
             <div className="flex gap-sm mt-md">
               <button className="btn btn-success" style={{ flex: 1 }} onClick={handleVerifikasi}>
