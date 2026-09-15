@@ -16,7 +16,7 @@ export default function DashboardPage() {
   // Determine user primary role
   const primaryRole = useMemo(() => {
     if (!user) return 'petugas';
-    
+
     return user.roleId || 'petugas';
   }, [user]);
 

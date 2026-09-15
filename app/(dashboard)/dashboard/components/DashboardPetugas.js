@@ -120,21 +120,23 @@ export function DashboardPetugas() {
       <div className="stats-grid stagger mb-lg">
         {/* Dana Mengendap (Prioritas Petugas) */}
         <div className="stat-card" style={{ borderTop: stats.danaMengendap > 0 ? '3px solid var(--warning)' : '3px solid var(--success)' }}>
-          <div className="stat-icon" style={{ background: stats.danaMengendap > 0 ? 'var(--warning-bg)' : 'var(--success-bg)', color: stats.danaMengendap > 0 ? 'var(--warning)' : 'var(--success)' }}>
-            <Wallet size={22} />
+          <div className="flex items-center gap-sm mb-sm">
+            <div className="stat-icon" style={{ background: stats.danaMengendap > 0 ? 'var(--warning-bg)' : 'var(--success-bg)', color: stats.danaMengendap > 0 ? 'var(--warning)' : 'var(--success)', margin: 0 }}>
+              <Wallet size={22} />
+            </div>
+            <div className="stat-label" style={{ margin: 0, lineHeight: 1.2 }}>Dana di Tangan (Belum Disetor)</div>
           </div>
-          <div className="stat-label">Dana di Tangan (Belum Disetor)</div>
           <div className="stat-value" style={{ color: stats.danaMengendap > 0 ? 'var(--warning)' : 'var(--success)' }}>
             {formatRupiah(stats.danaMengendap)}
           </div>
           <div className="stat-change text-secondary">
             {stats.danaMengendap > 0 ? (
               <span className="flex items-center gap-xs" style={{ color: 'var(--warning)' }}>
-                <AlertTriangle size={12} /> Segera setor ke bendahara
+                <AlertTriangle size={12} /> Segera setor
               </span>
             ) : (
               <span className="flex items-center gap-xs" style={{ color: 'var(--success)' }}>
-                <CheckCircle2 size={12} /> Semua dana telah disetor
+                <CheckCircle2 size={12} /> Telah disetor
               </span>
             )}
           </div>
@@ -142,24 +144,30 @@ export function DashboardPetugas() {
 
         {/* Setoran Menunggu Verifikasi */}
         <div className="stat-card">
-          <div className="stat-icon blue"><Clock size={22} /></div>
-          <div className="stat-label">Setoran Pending Verifikasi</div>
+          <div className="flex items-center gap-sm mb-sm">
+            <div className="stat-icon blue" style={{ margin: 0 }}><Clock size={22} /></div>
+            <div className="stat-label" style={{ margin: 0, lineHeight: 1.2 }}>Setoran Pending Verifikasi</div>
+          </div>
           <div className="stat-value">{formatRupiah(stats.totalSetoranPending)}</div>
           <div className="stat-change text-secondary">Sedang ditinjau bendahara</div>
         </div>
 
         {/* Donasi Terkumpul Bulan Ini */}
         <div className="stat-card">
-          <div className="stat-icon green"><HandCoins size={22} /></div>
-          <div className="stat-label">Donasi Dihimpun (Bulan Ini)</div>
+          <div className="flex items-center gap-sm mb-sm">
+            <div className="stat-icon green" style={{ margin: 0 }}><HandCoins size={22} /></div>
+            <div className="stat-label" style={{ margin: 0, lineHeight: 1.2 }}>Donasi Dihimpun (Bulan Ini)</div>
+          </div>
           <div className="stat-value">{formatRupiah(stats.nominalBulanIni)}</div>
           <div className="stat-change text-secondary">{stats.jumlahDonasiBulanIni} transaksi tercatat</div>
         </div>
 
         {/* Donatur Dilayani */}
         <div className="stat-card">
-          <div className="stat-icon gold"><Users size={22} /></div>
-          <div className="stat-label">Donatur Terlayani</div>
+          <div className="flex items-center gap-sm mb-sm">
+            <div className="stat-icon gold" style={{ margin: 0 }}><Users size={22} /></div>
+            <div className="stat-label" style={{ margin: 0, lineHeight: 1.2 }}>Donatur Terlayani</div>
+          </div>
           <div className="stat-value">{stats.totalDonaturDilayani}</div>
           <div className="stat-change text-secondary">Total muzakki/donatur binaan</div>
         </div>
