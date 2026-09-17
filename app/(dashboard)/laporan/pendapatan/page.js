@@ -10,7 +10,7 @@ import { HandCoins, Users, List } from 'lucide-react';
 
 export default function LaporanPendapatanPage() {
   const { user } = useAuth();
-  
+
   // Define available tabs based on permissions
   const availableTabs = useMemo(() => {
     const tabs = [];
@@ -36,8 +36,8 @@ export default function LaporanPendapatanPage() {
     <div className="animate-fade-in-up">
       <div className="page-header" style={{ paddingBottom: 0 }}>
         <h1>Pendapatan & Donatur</h1>
-        <p>Laporan terkait penerimaan donasi dan aktivitas donatur</p>
-        
+        <p>Laporan terkait penerimaan donasi & aktivitas donatur</p>
+
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '24px', marginTop: '24px', borderBottom: '1px solid var(--border)' }}>
           {availableTabs.map(tab => (

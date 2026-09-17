@@ -114,7 +114,7 @@ export function PenerimaanDonasi() {
         // Period filter
         if (!checkDateInRange(d.tanggal, filterStart, filterEnd)) return false;
         // Sumber dana filter
-        if (filterSumber !== 'semua' && d.metodeDonasiId !== filterSumber) return false;
+        if (filterSumber !== 'semua' && d.metodeId !== filterSumber) return false;
         // Search
         if (search) {
           const don = donatur.find(x => x.id === d.donaturId);
@@ -150,7 +150,7 @@ export function PenerimaanDonasi() {
     const headers = ['No', 'Tanggal', 'Sumber Dana', 'Nama Donatur', 'Nominal', 'Petugas'];
     const csvData = filtered.map((d, i) => {
       const don = donatur.find(x => x.id === d.donaturId);
-      const met = metodeDonasi.find(m => m.id === d.metodeDonasiId);
+      const met = metodeDonasi.find(m => m.id === d.metodeId);
       const pet = users.find(u => u.id === d.petugasId);
       
       return [
@@ -188,7 +188,7 @@ export function PenerimaanDonasi() {
     const headers = [['NO', 'TANGGAL', 'SUMBER DANA', 'NAMA DONATUR', 'NOMINAL', 'PETUGAS']];
     const data = filtered.map((d, i) => {
       const don = donatur.find(x => x.id === d.donaturId);
-      const met = metodeDonasi.find(m => m.id === d.metodeDonasiId);
+      const met = metodeDonasi.find(m => m.id === d.metodeId);
       const pet = users.find(u => u.id === d.petugasId);
       
       return [
@@ -399,7 +399,7 @@ export function PenerimaanDonasi() {
             ) : (
               filtered.map((d, idx) => {
                 const don = donatur.find(x => x.id === d.donaturId);
-                const met = metodeDonasi.find(m => m.id === d.metodeDonasiId);
+                const met = metodeDonasi.find(m => m.id === d.metodeId);
                 const pet = users.find(u => u.id === d.petugasId);
                 return (
                   <tr key={d.id}>

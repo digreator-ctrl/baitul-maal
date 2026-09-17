@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, Trash2, Image } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, Image, Save } from 'lucide-react';
+import { useData } from '@/contexts/DataContext';
 
 export default function LogoPage() {
   const router = useRouter();
+  const { showToast } = useData();
   const [logo, setLogo] = useState(null);
   const [preview, setPreview] = useState(null);
 
@@ -24,6 +26,12 @@ export default function LogoPage() {
   const handleRemove = () => {
     setLogo(null);
     setPreview(null);
+  };
+  
+  const handleSave = () => {
+    if (preview) {
+      showToast('Logo berhasil disimpan secara lokal (tahap frontend)', 'success');
+    }
   };
 
   return (
@@ -60,13 +68,18 @@ export default function LogoPage() {
           />
 
           <div className="flex gap-sm">
-            <label htmlFor="logo-upload" className="btn btn-primary btn-sm" style={{ cursor: 'pointer' }}>
+            <label htmlFor="logo-upload" className="btn btn-outline btn-sm" style={{ cursor: 'pointer' }}>
               <Upload size={16} /> Upload Logo
             </label>
             {preview && (
-              <button className="btn btn-danger btn-sm" onClick={handleRemove}>
-                <Trash2 size={16} /> Hapus
-              </button>
+              <>
+                <button className="btn btn-primary btn-sm" onClick={handleSave}>
+                  <Save size={16} /> Simpan
+                </button>
+                <button className="btn btn-danger btn-sm" onClick={handleRemove}>
+                  <Trash2 size={16} /> Hapus
+                </button>
+              </>
             )}
           </div>
 
