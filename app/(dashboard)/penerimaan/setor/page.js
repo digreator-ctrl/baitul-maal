@@ -114,7 +114,7 @@ export default function SetorPage() {
     // Ambil ID donasi yang belum disetor dan sesuai dengan metode yang dipilih
     let donasiTerkait = donasi.filter(d => 
       d.metodeId === form.metodeDonasiId && 
-      d.status === 'belum_disetor'
+      (d.status === 'belum_disetor' || d.status === 'ditolak')
     );
     if (user?.role === 'petugas') {
       donasiTerkait = donasiTerkait.filter(d => d.petugasId === user.id);
