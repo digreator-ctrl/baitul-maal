@@ -9,6 +9,20 @@ export async function PUT(request, { params }) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
+
+    const existing = await prisma.donatur.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Donatur tidak ditemukan" }, { status: 404 });
+    }
+
+    const userRoles = session.user.roles || (session.user.roleId ? [session.user.roleId] : []);
+    const isPrivileged = userRoles.some(r => ['superadmin', 'admin'].includes(r));
+    const isPetugas = userRoles.includes('petugas') && !isPrivileged;
+
+    if (isPetugas && existing.petugasId !== session.user.id) {
+      return NextResponse.json({ error: "Akses ditolak: Anda tidak memiliki akses ke donatur ini" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { 
       nama, 
@@ -21,7 +35,8 @@ export async function PUT(request, { params }) {
       linkGmaps,
       rutin, 
       status,
-      kategori 
+      kategori,
+      petugasId,
     } = body;
 
     const finalAlamat = alamat !== undefined ? alamat : (keterangan !== undefined ? keterangan : undefined);
@@ -40,14 +55,26 @@ export async function PUT(request, { params }) {
     if (rutin !== undefined) updateData.rutin = !!rutin;
     if (status !== undefined) updateData.status = status;
     if (kategori !== undefined) updateData.kategori = kategori;
+    if (isPrivileged && petugasId !== undefined) {
+      updateData.petugasId = petugasId || null;
+    }
 
     const updatedDonatur = await prisma.donatur.update({
       where: { id },
       data: updateData,
+      include: {
+        petugas: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     const responseData = {
       ...updatedDonatur,
+      petugasNama: updatedDonatur.petugas?.name || null,
       kota: updatedDonatur.kabupaten || '',
       kelurahan: updatedDonatur.desa || '',
       keterangan: updatedDonatur.alamat || '',
@@ -67,6 +94,19 @@ export async function DELETE(request, { params }) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
+
+    const existing = await prisma.donatur.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Donatur tidak ditemukan" }, { status: 404 });
+    }
+
+    const userRoles = session.user.roles || (session.user.roleId ? [session.user.roleId] : []);
+    const isPrivileged = userRoles.some(r => ['superadmin', 'admin'].includes(r));
+    const isPetugas = userRoles.includes('petugas') && !isPrivileged;
+
+    if (isPetugas && existing.petugasId !== session.user.id) {
+      return NextResponse.json({ error: "Akses ditolak: Anda tidak memiliki akses untuk menghapus donatur ini" }, { status: 403 });
+    }
     
     // Periksa apakah donatur memiliki relasi donasi
     const donationCount = await prisma.donasi.count({ where: { donaturId: id } });

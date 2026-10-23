@@ -6,13 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { hasPermission } from '@/lib/rbac';
 import { formatRupiah, formatTanggalShort, getStatusBadge } from '@/lib/utils';
-import { ArrowLeft, Edit, Trash2, MapPin, Phone, ExternalLink, HandCoins } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, MapPin, Phone, ExternalLink, HandCoins, User } from 'lucide-react';
 import { useState } from 'react';
 
 export default function DetailDonaturPage() {
   const { id } = useParams();
   const { user } = useAuth();
-  const { donatur, donasi, kategoriDonasi, metodeDonasi, deleteDonatur } = useData();
+  const { donatur, donasi, kategoriDonasi, metodeDonasi, deleteDonatur, users } = useData();
   const router = useRouter();
   const [showDelete, setShowDelete] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
@@ -130,6 +130,17 @@ export default function DetailDonaturPage() {
                 ) : (
                   <span className="text-sm text-tertiary italic">Link Google Maps belum ditambahkan</span>
                 )}
+              </div>
+              <div className="flex items-center gap-sm" style={{ paddingTop: '8px', borderTop: '1px dashed var(--border-color)' }}>
+                <User size={16} color="var(--primary)" />
+                <div>
+                  <div className="text-xs text-secondary">Petugas Penanggung Jawab:</div>
+                  <div className="text-sm font-semibold">
+                    {d.petugasNama || users.find(u => u.id === d.petugasId)?.name || (
+                      <span className="badge badge-warning" style={{ fontSize: '11px', marginTop: '2px' }}>Belum Ditugaskan</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

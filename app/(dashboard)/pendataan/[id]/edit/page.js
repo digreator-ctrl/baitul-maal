@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -11,10 +11,20 @@ import DynamicMapPicker from '@/components/DynamicMapPicker';
 export default function EditDonaturPage() {
   const { id } = useParams();
   const { user } = useAuth();
-  const { donatur, updateDonatur } = useData();
+  const { donatur, updateDonatur, users } = useData();
   const router = useRouter();
 
   const d = donatur.find(x => x.id === id);
+
+  const userRoles = user?.roles || (user?.roleId ? [user.roleId] : []);
+  const isAdminOrSuperAdmin = userRoles.some(r => ['superadmin', 'admin'].includes(r)) || ['superadmin', 'admin'].includes(user?.role);
+
+  const petugasList = useMemo(() => {
+    return (users || []).filter(u => {
+      const rList = u.roles || (u.roleId ? [u.roleId] : []);
+      return rList.includes('petugas');
+    });
+  }, [users]);
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
@@ -25,6 +35,7 @@ export default function EditDonaturPage() {
     kelurahan: '', kelurahanId: '',
     keterangan: '',
     linkGmaps: '', noWa: '',
+    petugasId: '',
   });
 
   const [provinces, setProvinces] = useState([]);
@@ -50,6 +61,7 @@ export default function EditDonaturPage() {
         keterangan: d.keterangan || d.alamat || '',
         linkGmaps: d.linkGmaps || (d.lat && d.lng ? `https://www.google.com/maps?q=${d.lat},${d.lng}` : ''),
         noWa: d.noWa || '',
+        petugasId: d.petugasId || '',
       });
     }
   }, [d]);
@@ -316,6 +328,27 @@ export default function EditDonaturPage() {
               />
               {errors.noWa && <span className="form-error">{errors.noWa}</span>}
             </div>
+
+            {isAdminOrSuperAdmin && (
+              <div className="form-group" style={{ marginTop: 'var(--space-md)', padding: '12px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
+                <label className="form-label font-semibold" style={{ color: 'var(--primary)' }}>
+                  Petugas Penanggung Jawab / Binaan
+                </label>
+                <select
+                  className="form-select"
+                  value={form.petugasId || ''}
+                  onChange={(e) => setForm(prev => ({ ...prev, petugasId: e.target.value }))}
+                >
+                  <option value="">-- Belum Ditugaskan / Kosong --</option>
+                  {petugasList.map(p => (
+                    <option key={p.id} value={p.id}>Tugaskan ke: {p.name}</option>
+                  ))}
+                </select>
+                <span className="form-hint" style={{ marginTop: '6px', display: 'block' }}>
+                  Hanya Petugas ini, Admin, dan Super Admin yang dapat melihat dan mendata donatur ini.
+                </span>
+              </div>
+            )}
           </div>
         )}
 

@@ -95,6 +95,39 @@ export function DataProvider({ children }) {
     }
   }, [showToast]);
 
+  const assignDonatur = useCallback(async (donaturIds, petugasId) => {
+    try {
+      const res = await fetch('/api/donatur/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ donaturIds, petugasId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const assignedUser = users.find(u => u.id === petugasId);
+        setDonatur(prev => prev.map(d => {
+          if (donaturIds.includes(d.id)) {
+            return {
+              ...d,
+              petugasId: petugasId || null,
+              petugasNama: assignedUser?.name || null,
+            };
+          }
+          return d;
+        }));
+        showToast(data.message || 'Donatur berhasil ditugaskan');
+        return true;
+      } else {
+        const err = await res.json().catch(() => null);
+        showToast(err?.error || 'Gagal menugaskan donatur', 'danger');
+        return false;
+      }
+    } catch (error) {
+      showToast('Terjadi kesalahan', 'danger');
+      return false;
+    }
+  }, [users, showToast]);
+
   // ---- Donasi CRUD ----
   const fetchDonasi = useCallback(async () => {
     try {
@@ -480,7 +513,7 @@ export function DataProvider({ children }) {
     isLoadingData,
     
     // Donatur
-    fetchDonatur, addDonatur, updateDonatur, deleteDonatur,
+    fetchDonatur, addDonatur, updateDonatur, deleteDonatur, assignDonatur,
     
     // Donasi
     fetchDonasi, addDonasi, updateDonasi, deleteDonasi,

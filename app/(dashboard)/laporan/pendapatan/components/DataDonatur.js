@@ -14,12 +14,14 @@ export function DataDonatur() {
   const [filterKategori, setFilterKategori] = useState('semua');
   const [sortConfig, setSortConfig] = useState({ key: 'nama', direction: 'asc' });
 
-  const isPetugas = user?.role === 'petugas';
+  const userRoles = user?.roles || (user?.roleId ? [user.roleId] : []);
+  const isPrivileged = userRoles.some(r => ['superadmin', 'admin', 'pengawas'].includes(r));
+  const isPetugas = (userRoles.includes('petugas') || user?.role === 'petugas') && !isPrivileged;
 
   const filtered = useMemo(() => {
     let result = donatur.filter(d => {
       // Petugas only sees own donatur
-      if (isPetugas && d.createdBy !== user?.id) return false;
+      if (isPetugas && d.petugasId !== user?.id) return false;
 
       const matchSearch = d.nama.toLowerCase().includes(search.toLowerCase()) ||
         d.noWa.includes(search) ||
@@ -85,7 +87,7 @@ export function DataDonatur() {
       'Alamat', 'Link Google Maps', 'Petugas'
     ];
     const csvData = filtered.map((d, i) => {
-      const petugas = users.find(u => u.id === d.createdBy);
+      const petugas = users.find(u => u.id === d.petugasId) || (d.petugasNama ? { name: d.petugasNama } : null);
       return [
         i + 1,
         `"${d.nama}"`,
@@ -125,7 +127,7 @@ export function DataDonatur() {
       'ALAMAT', 'PETUGAS'
     ]]; // Exclude linkGmaps from PDF to save space
     const data = filtered.map((d, i) => {
-      const petugas = users.find(u => u.id === d.createdBy);
+      const petugas = users.find(u => u.id === d.petugasId) || (d.petugasNama ? { name: d.petugasNama } : null);
       return [
         i + 1,
         d.nama,
@@ -330,7 +332,7 @@ export function DataDonatur() {
               </tr>
             ) : (
               filtered.map((d, idx) => {
-                const petugas = users.find(u => u.id === d.createdBy);
+                const petugas = users.find(u => u.id === d.petugasId) || (d.petugasNama ? { name: d.petugasNama } : null);
                 return (
                   <tr key={d.id}>
                     <td data-label="No">{idx + 1}</td>

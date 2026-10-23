@@ -9,12 +9,31 @@ export async function GET(request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const userRoles = session.user.roles || (session.user.roleId ? [session.user.roleId] : []);
+    const isPrivileged = userRoles.some(r => ['superadmin', 'admin', 'pengawas'].includes(r));
+    const isPetugas = userRoles.includes('petugas') && !isPrivileged;
+
+    const where = {};
+    if (isPetugas) {
+      where.petugasId = session.user.id;
+    }
+
     const donatur = await prisma.donatur.findMany({
+      where,
+      include: {
+        petugas: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 
     const mapped = donatur.map(d => ({
       ...d,
+      petugasNama: d.petugas?.name || null,
       kota: d.kabupaten || '',
       kelurahan: d.desa || '',
       keterangan: d.alamat || '',
@@ -46,7 +65,8 @@ export async function POST(request) {
       linkGmaps,
       rutin, 
       status,
-      kategori
+      kategori,
+      petugasId,
     } = body;
 
     const finalAlamat = alamat || keterangan || '';
@@ -55,6 +75,18 @@ export async function POST(request) {
 
     if (!nama || !noWa) {
       return NextResponse.json({ error: "Nama dan No WA wajib diisi" }, { status: 400 });
+    }
+
+    const userRoles = session.user.roles || (session.user.roleId ? [session.user.roleId] : []);
+    const isPrivileged = userRoles.some(r => ['superadmin', 'admin'].includes(r));
+    const isPetugas = userRoles.includes('petugas') && !isPrivileged;
+
+    let finalPetugasId = session.user.id;
+    if (isPrivileged) {
+      finalPetugasId = petugasId !== undefined ? (petugasId || null) : session.user.id;
+    } else if (isPetugas) {
+      // Petugas otomatis terdata sebagai petugasnya
+      finalPetugasId = session.user.id;
     }
 
     const newDonatur = await prisma.donatur.create({
@@ -70,12 +102,21 @@ export async function POST(request) {
         rutin: !!rutin,
         status: status || 'aktif',
         kategori: kategori || 'Keluarga',
-        petugasId: session.user?.id,
+        petugasId: finalPetugasId,
+      },
+      include: {
+        petugas: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
     const responseData = {
       ...newDonatur,
+      petugasNama: newDonatur.petugas?.name || null,
       kota: newDonatur.kabupaten || '',
       kelurahan: newDonatur.desa || '',
       keterangan: newDonatur.alamat || '',
